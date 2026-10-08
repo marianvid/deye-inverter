@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted">Solar energy expected on the panel plane (Open-Meteo), next to what the panels produced.</p>
+<section class="tiles" id="day-tiles"></section>
+<div class="chart-box tall"><canvas id="hourly-chart"></canvas></div>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-forecast.js"></script>{% endblock %}

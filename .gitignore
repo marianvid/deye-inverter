@@ -1,0 +1,18 @@
+# Scratch (CONVENTIONS.md §1)
+tmp/
+# Private settings live in their own private repository: deye-inverter-opts
+opts/
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+# Local data
+*.db
+*.sqlite3
+.DS_Store
+# Build and test output
+*.egg-info/
+.coverage
+.mypy_cache/

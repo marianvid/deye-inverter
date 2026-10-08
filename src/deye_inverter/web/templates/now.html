@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="muted" id="data-age">Loading…</p>
+<section class="tiles" id="power-tiles"></section>
+<h2>Battery</h2>
+<section class="battery">
+  <div class="soc-bar"><div class="soc-fill" id="soc-fill"></div><span id="soc-label">–</span></div>
+  <div class="tiles" id="battery-tiles"></div>
+</section>
+<h2>Charging settings</h2>
+<section class="tiles" id="charge-tiles"></section>
+<h2>Today</h2>
+<section class="tiles" id="today-tiles"></section>
+<h2>Today's curve</h2>
+<div class="chart-box"><canvas id="today-chart"></canvas></div>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-now.js"></script>{% endblock %}

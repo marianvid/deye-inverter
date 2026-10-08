@@ -1,0 +1,8 @@
+{% extends "auth_base.html" %}
+{% block content %}
+<form method="post" action="/login" class="stack">
+  <label>Password <input type="password" name="password" autocomplete="current-password" required autofocus></label>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <button type="submit" class="primary">Log in</button>
+</form>
+{% endblock %}

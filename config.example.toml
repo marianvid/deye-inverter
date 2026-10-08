@@ -1,0 +1,33 @@
+# deye-inverter configuration — example with placeholders only.
+# The real file lives in the private opts repository (opts/<os>/config.toml).
+# Path to the real file: environment variable DEYE_INVERTER_CONFIG.
+# Any value can be overridden with DEYE_INVERTER_<SECTION>_<KEY>,
+# for example DEYE_INVERTER_WEB_PORT=8080.
+
+[deye]
+base_url = "https://eu1-developer.deyecloud.com/v1.0"
+# File with four lines: app_id=, app_secret=, email=, password_sha256=
+credentials_file = "<path-to>/credentials.txt"
+# Optional: leave empty to use the first inverter found on the account.
+device_sn = ""
+
+[storage]
+database = "<runtime-root>/deye-inverter/deye.db"
+
+[web]
+host = "0.0.0.0"
+port = 8080
+
+[site]
+timezone = "Europe/Bucharest"
+# The panels' location (private): used by the weather forecast.
+latitude = 0.0
+longitude = 0.0
+
+# Optional: how often the background jobs run (minutes).
+[intervals]
+readings_minutes = 5
+inverter_settings_minutes = 30
+forecast_minutes = 60
+daily_energy_minutes = 60
+backfill_minutes = 10

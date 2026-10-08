@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>Charging settings in the inverter <span class="muted small" id="charge-read-at"></span></h2>
+  <div class="tiles" id="charge-tiles"></div>
+  <div class="toolbar">
+    <button type="button" class="danger" id="grid-charge-toggle" disabled>…</button>
+  </div>
+  <p class="muted small">
+    <strong>Grid charge</strong> is the inverter's master switch: the <em>Grid charge</em> boxes in the
+    Time of Use table below charge from the grid only while it is on, and only up to the slot's SOC.
+    <strong>Grid charge current</strong> limits how fast the grid charges the battery.
+    Values are read from the inverter every 30 minutes and after every change.
+  </p>
+</section>
+
+<section class="panel">
+  <div class="row spread">
+    <h2>Profiles</h2>
+    <span class="muted small" id="profile-lock"></span>
+  </div>
+  <div class="toolbar">
+    <select id="profile-select"></select>
+    <button type="button" id="profile-load">Load into editor</button>
+    <button type="button" class="danger" id="profile-send">Send to inverter</button>
+    <button type="button" id="profile-delete">Delete</button>
+    <button type="button" id="profile-save">Save profile as…</button>
+  </div>
+</section>
+
+<p class="muted">The <strong>base table</strong> is the table the planner starts from. The planner changes only the slots its rules own; the rest stay as in the base table.</p>
+<div class="toolbar">
+  <label>Edit <select id="source-select"><option value="base">Base table</option><option value="current">Inverter table</option></select></label>
+  <button type="button" id="reload">Read from inverter</button>
+  <span class="muted" id="read-at"></span>
+</div>
+<table class="data editable" id="tou-editor"></table>
+<div class="toolbar">
+  <button type="button" id="save-base">Save as base table</button>
+  <button type="button" class="danger" id="send">Send to inverter now</button>
+</div>
+<h2>Inverter table (last read)</h2>
+<table class="data" id="tou-current"></table>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-tou.js"></script>{% endblock %}

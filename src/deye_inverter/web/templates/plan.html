@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="row">
+    <div>
+      <h2>Automation mode</h2>
+      <div class="segmented" id="mode-switch">
+        <button type="button" data-mode="off">Off</button>
+        <button type="button" data-mode="dry-run">Dry-run</button>
+        <button type="button" data-mode="live">Live</button>
+      </div>
+      <p class="muted" id="mode-help"></p>
+    </div>
+    <div>
+      <h2>Writes today</h2>
+      <p class="big" id="writes-today">–</p>
+    </div>
+  </div>
+</section>
+<section class="panel" id="manual-charge">
+  <h2>Battery and manual charge</h2>
+  <div class="tiles" id="battery-now"></div>
+  <form id="manual-form" class="manual-box">
+    <label class="target">Charge to <input type="number" name="target_soc" min="1" max="100" step="1" value="80" required> %</label>
+    <span class="dash" aria-hidden="true">—</span>
+    <fieldset class="start-group">
+      <label><input type="radio" name="start" value="now" checked> Now</label>
+      <label><input type="radio" name="start" value="ready"> Ready by <input type="time" name="ready_time" aria-label="Ready by" disabled></label>
+      <span class="separator" aria-hidden="true"></span>
+      <label>Hold until <input type="time" name="hold_until"></label>
+    </fieldset>
+    <label class="switch" title="Start or cancel the manual charge">
+      <span class="switch-label">Charge</span>
+      <input type="checkbox" id="manual-toggle" aria-label="Manual charge on or off">
+      <span class="slider"></span>
+    </label>
+  </form>
+  <p class="muted small" id="manual-note"></p>
+</section>
+<section class="panel">
+  <div class="row spread">
+    <h2>What the planner would do now</h2>
+    <button type="button" class="primary" id="run-now">Run a check now</button>
+  </div>
+  <div id="preview"></div>
+</section>
+<section class="panel">
+  <h2>Next scheduled runs</h2>
+  <ul class="plain" id="next-runs"></ul>
+</section>
+<section class="panel">
+  <h2>Recent decisions</h2>
+  <table class="data" id="decisions"></table>
+</section>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-plan.js"></script>{% endblock %}

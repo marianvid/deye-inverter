@@ -1,0 +1,10 @@
+{% extends "auth_base.html" %}
+{% block content %}
+<p>First visit: choose the password for this interface.</p>
+<form method="post" action="/setup" class="stack">
+  <label>Password <input type="password" name="password" autocomplete="new-password" minlength="8" required autofocus></label>
+  <label>Repeat password <input type="password" name="confirm" autocomplete="new-password" minlength="8" required></label>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <button type="submit" class="primary">Save password</button>
+</form>
+{% endblock %}

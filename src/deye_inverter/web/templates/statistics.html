@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <div class="segmented" id="period-switch">
+    <button type="button" data-period="day">Day</button>
+    <button type="button" data-period="week">Week</button>
+    <button type="button" data-period="month">Month</button>
+    <button type="button" data-period="year">Year</button>
+    <button type="button" data-period="lifetime">Lifetime</button>
+  </div>
+</div>
+<div class="toolbar period-nav">
+  <button type="button" id="prev">◀</button>
+  <strong id="period-label">…</strong>
+  <button type="button" id="next">▶</button>
+  <input type="date" id="anchor">
+  <span class="muted" id="coverage"></span>
+</div>
+<section class="tiles" id="totals"></section>
+<div class="share" id="share" hidden>
+  <div class="share-solar" id="share-solar"></div>
+  <div class="share-grid" id="share-grid"></div>
+</div>
+<p class="muted small" id="share-legend"></p>
+<div class="chart-box tall"><canvas id="stats-chart"></canvas></div>
+<section id="counters" hidden>
+  <h2>Inverter counters (since installation)</h2>
+  <section class="tiles" id="counter-tiles"></section>
+</section>
+<h2 id="table-title" hidden>Breakdown</h2>
+<table class="data" id="buckets"></table>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-statistics.js"></script>{% endblock %}

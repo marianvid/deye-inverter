@@ -1,0 +1,18 @@
+[Unit]
+Description=Deye inverter monitoring and battery planner
+After=network-online.target
+Wants=network-online.target
+
+# Template: deploy/install.sh replaces @USER@ and @APP_DIR@.
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@APP_DIR@
+Environment=DEYE_INVERTER_CONFIG=@APP_DIR@/opts/linux/config.toml
+ExecStart=@APP_DIR@/.venv/bin/python -m deye_inverter serve
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

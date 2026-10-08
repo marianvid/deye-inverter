@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <label>Show <select id="kind-select">
+    <option value="">Everything</option>
+    <option value="command">Commands sent</option>
+    <option value="decision">Planner decisions</option>
+    <option value="setting">Charging settings changed</option>
+    <option value="error">Errors</option>
+  </select></label>
+</div>
+<table class="data" id="log-table"></table>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-log.js"></script>{% endblock %}

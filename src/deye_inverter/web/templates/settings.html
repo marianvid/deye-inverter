@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<form id="settings-form" class="settings"></form>
+<div class="toolbar">
+  <button type="button" class="primary" id="save-settings">Save settings</button>
+  <button type="button" id="reset-settings">Undo changes</button>
+</div>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-settings.js"></script>{% endblock %}
