@@ -1,6 +1,7 @@
 from dataclasses import replace
 
 from deye_inverter.domain.settings import Mode
+from deye_inverter.domain.time_of_use import TimeOfUseTable
 from tests.fakes import at, flat_forecast, reading, winter_table
 
 
@@ -32,19 +33,16 @@ def test_dry_run_records_but_does_not_write(world, primed) -> None:
     assert decision.changed_slots
 
 
-def test_live_writes_verifies_and_respects_limit(world, primed) -> None:
+def test_live_writes_and_verifies(world, primed) -> None:
     world.gateway.table = winter_table(grid_charge=False)
     primed()
     world.gateway.live = reading(at(10), soc=40)
     world.services.collect_readings()
-    set_mode(world, Mode.LIVE, max_writes_per_day=1)
+    set_mode(world, Mode.LIVE)
     first = world.services.planner.run("check 10:00")
     assert first.status == "executed"
     assert len(world.gateway.written) == 1
     assert world.services.planner.run("again").status == "no-change"
-    world.gateway.table = world.services.state.base_table()
-    world.services.refresh_inverter()
-    assert world.services.planner.run("third").status == "limit"
 
 
 def test_sunny_day_turns_grid_charge_off(world, primed) -> None:
@@ -104,3 +102,51 @@ def test_read_back_waits_for_the_cloud_and_mismatches_count_as_writes(world, pri
     world.gateway.ignore_writes = True
     assert commands.send(winter_table(soc=45), "test").status == "mismatch"
     assert commands.writes_today() == 2
+
+
+def lowering_write_pending(world, primed):
+    """Live, one table already sent; the inverter then shows a higher protection than
+    the rules want, so the next table only lowers it."""
+    world.gateway.table = winter_table(grid_charge=False)
+    primed()
+    world.gateway.live = reading(at(10), soc=40)
+    world.services.collect_readings()
+    set_mode(world, Mode.LIVE)
+    sent = world.services.planner.run("check 10:00").desired
+    world.gateway.table = TimeOfUseTable(
+        tuple(slot.with_changes(soc=min(100, slot.soc + 10)) for slot in sent.slots)
+    )
+    world.services.refresh_inverter()
+
+
+def test_lowering_waits_for_the_minimum_gap(world, primed) -> None:
+    lowering_write_pending(world, primed)
+    decision = world.services.planner.run("check 10:15")
+    assert decision.status == "wait"
+    assert decision.message.startswith("Next write allowed at")
+    world.clock.moment = at(10, 31)
+    assert world.services.planner.run("check 10:31").status == "executed"
+
+
+def test_lowering_respects_the_daily_limit(world, primed) -> None:
+    lowering_write_pending(world, primed)
+    set_mode(world, Mode.LIVE, max_writes_per_day=1, min_minutes_between_writes=0)
+    assert world.services.planner.run("check 10:15").status == "limit"
+
+
+def test_raising_the_protection_ignores_the_gap_and_the_limit(world, primed) -> None:
+    world.gateway.table = winter_table(grid_charge=False)
+    primed()
+    world.gateway.live = reading(at(10), soc=40)
+    world.services.collect_readings()
+    set_mode(world, Mode.LIVE)
+    assert world.services.planner.run("check 10:00").status == "executed"
+    world.gateway.table = winter_table(soc=20, grid_charge=False)
+    world.services.refresh_inverter()
+    set_mode(world, Mode.LIVE, max_writes_per_day=1)
+    decision = world.services.planner.run("check 10:15")
+    assert decision.status == "executed"
+    assert "protection raised" in decision.message
+    world.gateway.table = winter_table(soc=20, grid_charge=False)
+    world.services.refresh_inverter()
+    assert world.services.planner.run("check 10:30").status == "limit"

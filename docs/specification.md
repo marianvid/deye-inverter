@@ -72,8 +72,11 @@ on 2026-10-07). Summary:
 ### 4.3 Safety limits
 
 - No SOC below 20 % (the BMS shutdown limit) or above 100 %.
-- At most N writes per day (default 6). A failed write is not retried
-  blindly; it is logged and shown.
+- Write limits against a planner fault: at most N writes per day (default 24)
+  and at least M minutes between writes (default 30). A table that keeps more
+  in the battery than the inverter's (higher SOC, grid charge on or earlier) is
+  exempt, up to 2 × N per day. A failed write is not retried blindly; it is
+  logged and shown.
 - If the forecast or the cloud is unavailable, the planner writes nothing and
   the last table stays in force.
 
@@ -105,7 +108,7 @@ inline scripts or styles.
 | Consumption estimate window | last 7 days |
 | Live-value polling | every 5 min (DeyeCloud refreshes every 3–5 min) |
 | Settings polling | every 30 min, and right after every write |
-| Writes per day | at most 6 |
+| Writes per day / minutes between writes | at most 24 / 30 (a table that keeps more in the battery: exempt, up to 48) |
 | Battery capacity | 16 kWh |
 | Panels | 6 kWp, azimuth 0° (south), tilt 28°, performance ratio 0.82 (measured) |
 

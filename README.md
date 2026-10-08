@@ -38,8 +38,10 @@ below ask for a different one:
 
 Every value behind a decision is a setting in the interface. The planner runs in
 mode **Off**, **Dry-run** (decides and shows, sends nothing) or **Live**. Of
-the 96 checks a day most end in "no change"; at most six of them may send a
-new table. Each write is read back to confirm it.
+the 96 checks a day most end in "no change"; the others send a new table, which
+is read back to confirm it. Write limits (at most 24 a day, 30 minutes apart)
+guard against a planner fault; a table that keeps more in the battery is sent
+anyway.
 
 Besides the planner it collects the inverter's live values every 5 minutes into
 a local SQLite database, so the history stays readable without the cloud, and

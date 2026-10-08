@@ -109,7 +109,9 @@ class TuningSettings:
 @dataclass(frozen=True)
 class PlannerSettings:
     mode: Mode = Mode.DRY_RUN
-    max_writes_per_day: int = 6
+    # Safety net against a planner fault, not a limit of the inverter or DeyeCloud.
+    max_writes_per_day: int = 24
+    min_minutes_between_writes: int = 30
     reserve: ReserveSettings = field(default_factory=ReserveSettings)
     floor: FloorSettings = field(default_factory=FloorSettings)
     site: SiteSettings = field(default_factory=SiteSettings)
@@ -134,6 +136,9 @@ class SettingsCodec:
         return PlannerSettings(
             mode=Mode(data.get("mode", defaults.mode)),
             max_writes_per_day=int(data.get("max_writes_per_day", defaults.max_writes_per_day)),
+            min_minutes_between_writes=int(
+                data.get("min_minutes_between_writes", defaults.min_minutes_between_writes)
+            ),
             reserve=_build(defaults.reserve, data.get("reserve", {})),
             floor=_build(defaults.floor, data.get("floor", {})),
             site=_build(defaults.site, data.get("site", {})),

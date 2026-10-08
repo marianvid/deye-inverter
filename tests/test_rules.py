@@ -133,3 +133,14 @@ def test_check_times_and_load_profile() -> None:
     assert profile.energy_between(at(10, 30), at(12)) == pytest.approx(0.5 * 10 + 11)
     with pytest.raises(ValueError):
         LoadProfile((1.0,))
+
+
+def test_protects_more_than() -> None:
+    base = winter_table(grid_charge=False)
+    assert not base.protects_more_than(base)
+    assert winter_table(soc=60, grid_charge=False).protects_more_than(base)
+    assert not winter_table(soc=50, grid_charge=False).protects_more_than(base)
+    assert winter_table().protects_more_than(base)
+    later = charging_from(3, 14, 0)
+    earlier = charging_from(3, 13, 30)
+    assert earlier.protects_more_than(later) and not later.protects_more_than(earlier)

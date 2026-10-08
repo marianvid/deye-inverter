@@ -68,10 +68,20 @@ At each check, for each protected moment:
   slot keeps the reserve computed for its moment; grid charge only if the battery
   is already below it.
 
-Fewer writes: a planned start moves only by more than 15 minutes, a reserve is
-rewritten only when it changes by more than 3 points, and at most 6 tables are
-written per day. After a write the table is read back up to 4 times, 15 s apart,
-because DeyeCloud shows a new table only after a while.
+Fewer writes: a planned start moves only by more than 15 minutes, and a reserve
+is rewritten only when it changes by more than 3 points. Most checks therefore
+end in "no change". After a write the table is read back up to 4 times, 15 s
+apart, because DeyeCloud shows a new table only after a while.
+
+Write limits, a safety net against a planner fault (neither the inverter nor
+DeyeCloud imposes one):
+
+- A table that **keeps more in the battery** (a higher slot SOC, grid charge
+  switched on, or grid charging starting earlier) is sent at once.
+- A table that **lowers the protection** or moves a grid start later waits until
+  30 minutes [minutes between writes] after the previous write.
+- At most **24 tables** a day [writes per day]; tables that keep more in the
+  battery may go on up to twice that, so a fault cannot block a needed charge.
 
 ## 5. A day, from 09:00
 

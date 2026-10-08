@@ -215,6 +215,7 @@ table.editable input[type="checkbox"] { width: auto; }
 .status { font-weight: 600; }
 .status.executed, .status.no-change { color: var(--ok); }
 .status.failed, .status.mismatch, .status.limit { color: var(--danger); }
+.status.wait { color: var(--muted); }
 .status.dry-run, .status.change { color: var(--warn); }
 
 ul.plain { list-style: none; padding: 0; margin: 0; }

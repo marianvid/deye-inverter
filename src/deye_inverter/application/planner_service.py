@@ -32,6 +32,7 @@ from deye_inverter.ports import (
 LOG = logging.getLogger(__name__)
 DECISION = "decision"
 FORECAST_HORIZON = timedelta(days=2)
+URGENT_FACTOR = 2
 
 
 @dataclass
@@ -148,11 +149,39 @@ class PlannerService:
             decision.status, decision.message = "dry-run", "Would send the table (dry-run)."
             return
         manual = self._manual_charge() is not None or decision.trigger.startswith("manual charge")
-        if not manual and self._commands.writes_today() >= settings.max_writes_per_day:
-            decision.status, decision.message = "limit", "Daily write limit reached."
-            return
+        urgent = self._protects_more(decision.desired)
+        if not manual:
+            held = self._held_back(settings, decision.at, urgent)
+            if held is not None:
+                decision.status, decision.message = held
+                return
         outcome = self._commands.send(decision.desired, f"planner ({decision.trigger})")
         decision.status, decision.message = outcome.status, outcome.message
+        if urgent and not manual:
+            decision.message += " (protection raised: sent regardless of the write limits)"
+
+    def _protects_more(self, desired: TimeOfUseTable) -> bool:
+        current = self._state.current_table()
+        return current is None or desired.protects_more_than(current)
+
+    def _held_back(
+        self, settings: PlannerSettings, now: datetime, urgent: bool
+    ) -> tuple[str, str] | None:
+        """Write limits, a safety net against a planner fault. A table that keeps more in
+        the battery is sent anyway, up to twice the daily limit; one that lowers the
+        protection or moves a grid start later waits."""
+        writes = self._commands.writes_today()
+        if urgent:
+            if writes >= URGENT_FACTOR * settings.max_writes_per_day:
+                return "limit", "Daily write limit reached, even for raising the protection."
+            return None
+        if writes >= settings.max_writes_per_day:
+            return "limit", "Daily write limit reached."
+        last = self._commands.last_write_at()
+        gap = timedelta(minutes=settings.min_minutes_between_writes)
+        if last is not None and now - last < gap:
+            return "wait", f"Next write allowed at {(last + gap).astimezone(now.tzinfo):%H:%M}."
+        return None
 
     def _context(self, settings: PlannerSettings, now: datetime) -> PlannerContext | None:
         base = self._state.base_table()
@@ -180,7 +209,6 @@ class PlannerService:
             current_table=self._state.current_table(),
         )
 
-    @staticmethod
     @staticmethod
     def _rules(settings: PlannerSettings, manual: ManualCharge | None) -> list[PlannerRule]:
         """Applied in order, later rules win where they touch the same slot:

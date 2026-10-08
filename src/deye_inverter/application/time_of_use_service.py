@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from deye_inverter.application.inverter_state import InverterState
@@ -19,6 +20,7 @@ from deye_inverter.ports import (
 
 COMMAND = "command"
 ACCEPTED = ("executed", "mismatch")
+RECENT_COMMANDS = 20
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,13 @@ class TimeOfUseService:
         entry = {**outcome.as_dict(), "reason": reason, "slots": table_to_dicts(table)}
         self._journal.add(COMMAND, started, entry)
         return outcome
+
+    def last_write_at(self) -> datetime | None:
+        """When the inverter last accepted a table (verified or not)."""
+        for entry in self._journal.recent(COMMAND, RECENT_COMMANDS):
+            if entry.get("status") in ACCEPTED:
+                return datetime.fromisoformat(str(entry["at"]))
+        return None
 
     def writes_today(self) -> int:
         """Tables the inverter accepted today, verified or not."""

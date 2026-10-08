@@ -90,6 +90,16 @@ class TimeOfUseTable:
         pairs = enumerate(zip(self.slots, other.slots, strict=True))
         return [i for i, (mine, theirs) in pairs if mine != theirs]
 
+    def protects_more_than(self, other: TimeOfUseTable) -> bool:
+        """True when this table keeps more in the battery than ``other`` somewhere:
+        a higher slot SOC, grid charge switched on, or grid charging starting earlier."""
+        for mine, theirs in zip(self.slots, other.slots, strict=True):
+            if mine.soc > theirs.soc:
+                return True
+            if mine.grid_charge and (not theirs.grid_charge or mine.start < theirs.start):
+                return True
+        return False
+
     @staticmethod
     def _split_window(start: int, end: int) -> list[tuple[int, int]]:
         if end > start:
