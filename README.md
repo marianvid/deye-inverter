@@ -57,7 +57,7 @@ and sent by hand.
 
 It runs as a systemd service in a Linux container on the home lab: a Proxmox
 mini PC that sits on the inverter's backup output, so it keeps working during
-an outage. See [HOME LAB](https://github.com/marianvid/gem12-dashboard).
+an outage. See [GEM12-Dashboard](https://github.com/marianvid/gem12-dashboard).
 
 ## Where things are
 
