@@ -12,14 +12,20 @@ layout, tariff and idea of what the battery is for. Point your own agent at this
 repository and have it adapt the code to what you have. That is a good deal
 faster than reading it all yourself, and it is how the code got here._
 
-**A battery that is full enough when the grid fails, and is not filled from the
-grid when the sun would have done it.**
+**Use as much of the solar energy as possible and buy as little as possible
+from the grid, while keeping enough in the battery for a grid outage.**
 
-That is the whole point. A Deye hybrid inverter decides how far the battery may
-run down from its *Time of Use* table: six time slots, each with a minimum
-state of charge and an optional "charge from the grid". A fixed table is wrong
-most days: set high, it buys energy the panels would have delivered a few hours
-later; set low, an evening outage finds the battery nearly empty.
+That is the whole point. Sun the house does not use right away goes into the
+battery and covers the evening and the night; every kWh the battery delivers is
+one not bought. The catch is the outage reserve: a battery allowed to run low
+buys the least but has little left when the grid fails, and a battery kept
+full from the grid is safe but buys energy the panels would have delivered a few
+hours later.
+
+A Deye hybrid inverter decides how far the battery may run down from its *Time
+of Use* table: six time slots, each with a minimum state of charge and an
+optional "charge from the grid". A fixed table is wrong most days, because the
+right reserve depends on tomorrow's sun.
 
 deye-inverter checks that table every 15 minutes against a fresh weather
 forecast and, through the DeyeCloud OpenAPI, rewrites it only when the rules
