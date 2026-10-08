@@ -49,6 +49,10 @@ shows statistics, the solar forecast (Open-Meteo, irradiance on the panel plane)
 against actual production, and the Time of Use table, which can also be edited
 and sent by hand.
 
+It runs as a systemd service in a Linux container on the home lab: a Proxmox
+mini PC that sits on the inverter's backup output, so it keeps working during
+an outage. See [HOME LAB](https://github.com/marianvid/gem12-dashboard).
+
 ## Where things are
 
 | | |
