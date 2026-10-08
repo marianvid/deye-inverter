@@ -21,8 +21,9 @@ state of charge and an optional "charge from the grid". A fixed table is wrong
 most days: set high, it buys energy the panels would have delivered a few hours
 later; set low, an evening outage finds the battery nearly empty.
 
-deye-inverter rewrites that table every 15 minutes from the weather forecast,
-through the DeyeCloud OpenAPI:
+deye-inverter checks that table every 15 minutes against a fresh weather
+forecast and, through the DeyeCloud OpenAPI, rewrites it only when the rules
+below ask for a different one:
 
 - **Floor** — outside the protected hours the battery may run down to 30 %.
 - **Outage reserve** — from 16:00 until the next morning each slot holds what a
@@ -36,8 +37,9 @@ through the DeyeCloud OpenAPI:
   until a time. It overrides everything while it is on.
 
 Every value behind a decision is a setting in the interface. The planner runs in
-mode **Off**, **Dry-run** (decides and shows, sends nothing) or **Live**, and
-sends at most six tables a day. Each write is read back to confirm it.
+mode **Off**, **Dry-run** (decides and shows, sends nothing) or **Live**. Of
+the 96 checks a day most end in "no change"; at most six of them may send a
+new table. Each write is read back to confirm it.
 
 Besides the planner it collects the inverter's live values every 5 minutes into
 a local SQLite database, so the history stays readable without the cloud, and
