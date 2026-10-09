@@ -144,3 +144,16 @@ def test_protects_more_than() -> None:
     later = charging_from(3, 14, 0)
     earlier = charging_from(3, 13, 30)
     assert earlier.protects_more_than(later) and not later.protects_more_than(earlier)
+
+
+def test_start_is_kept_when_the_next_slot_was_moved_over_the_deadline() -> None:
+    # 17:00's slot moved to 15:30 now covers 16:00 too; 16:00's own slot starts at 14:45.
+    base = winter_table()
+    current = base.replace_slots(
+        {
+            3: base.slots[3].with_changes(start=time(14, 45), grid_charge=True),
+            4: base.slots[4].with_changes(start=time(15, 30), grid_charge=True),
+        }
+    )
+    outcome = plan(context(at(10), soc=70, current=current))
+    assert outcome.overrides[3].start == time(14, 45)

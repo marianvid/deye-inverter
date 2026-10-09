@@ -146,11 +146,16 @@ class JustInTimeCharge:
 
     @staticmethod
     def _current_start(context: PlannerContext, deadline: datetime) -> datetime | None:
-        """Start of the inverter's grid-charging slot that holds the deadline, if any."""
+        """Start the inverter has for the slot this deadline moves, if it grid-charges.
+
+        The slot is found by its position in the base table, not by the time: once a
+        later deadline has moved its own slot earlier (17:00's slot starting at 15:30),
+        that slot covers this deadline (16:00) too, and its start is not this one.
+        """
         table = context.current_table
         if table is None:
             return None
-        slot = slot_holding(table, deadline)
+        slot = table.slots[context.base_table.index_at(deadline.time())]
         return last_before(slot.start, deadline) if slot.grid_charge else None
 
     def _moved_slot(
