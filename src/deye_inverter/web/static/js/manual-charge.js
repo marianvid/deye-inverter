@@ -1,7 +1,7 @@
 // Battery state and the manual "charge to X %" switch on the Plan page.
 import { api } from "./api.js";
 import { notify, tile } from "./dom.js";
-import { kw, localTime } from "./format.js";
+import { batteryFlow, localTime } from "./format.js";
 
 const form = document.getElementById("manual-form");
 const toggle = document.getElementById("manual-toggle");
@@ -13,13 +13,11 @@ const HELP = "Switch on to charge: Now, or Ready by a time (grid charging starts
   + "Overrides the plan while on.";
 
 function batteryTiles(status) {
-  const power = status.battery.power;
-  // DeyeCloud reports battery power positive while discharging, negative while charging.
-  const direction = power === null ? "" : power < -20 ? "charging" : power > 20 ? "discharging" : "idle";
+  const flow = batteryFlow(status.battery.power);
   const grid = status.grid_charge_enabled === null ? "unknown" : status.grid_charge_enabled ? "on" : "off";
   return [
     tile("Battery", status.battery.soc ?? "–", "%", status.battery.at ? localTime(status.battery.at) : "", "--battery"),
-    tile("Battery power", power === null ? "–" : kw(Math.abs(power)), "kW", direction, "--battery"),
+    tile("Battery power", flow.value, "kW", flow.direction, "--battery"),
     tile("Grid charge switch", grid, "", "", "--grid"),
   ];
 }

@@ -2,7 +2,7 @@ import { api } from "./api.js";
 import { chargeTiles } from "./charge-settings.js";
 import { draw, series } from "./charts.js";
 import { notify, tile } from "./dom.js";
-import { age, isoDate, kw, num } from "./format.js";
+import { age, batteryFlow, isoDate, kw, num } from "./format.js";
 
 const REFRESH_MS = 60_000;
 
@@ -16,8 +16,9 @@ function powerTiles(r) {
 }
 
 function batteryTiles(r, settings) {
+  const flow = batteryFlow(r.battery_power);
   const tiles = [
-    tile("Battery power", kw(r.battery_power), "kW", "", "--battery"),
+    tile("Battery power", flow.value, "kW", flow.direction, "--battery"),
     tile("Voltage", num(r.battery_voltage, 2), "V", "", "--battery"),
     tile("Temperature", num(r.battery_temperature), "°C", "", "--battery"),
   ];
