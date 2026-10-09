@@ -60,6 +60,7 @@ class PlanApi:
             "mode": settings.mode.value,
             "writes_today": self._services.time_of_use.writes_today(),
             "max_writes_per_day": settings.max_writes_per_day,
+            "max_raising_writes_per_day": settings.max_raising_writes_per_day,
             "preview": self._services.planner.preview().as_dict(),
             "decisions": self._services.journal.recent("decision", 20),
             "next_runs": scheduler.next_runs() if scheduler else [],

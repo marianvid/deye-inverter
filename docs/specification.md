@@ -75,7 +75,7 @@ on 2026-10-07). Summary:
 - Write limits against a planner fault: at most N writes per day (default 24)
   and at least M minutes between writes (default 30). A table that keeps more
   in the battery than the inverter's (higher SOC, grid charge on or earlier) is
-  exempt, up to 2 × N per day. A failed write is not retried blindly; it is
+  exempt, up to its own limit (default 48 per day). A failed write is not retried blindly; it is
   logged and shown.
 - If the forecast or the cloud is unavailable, the planner writes nothing and
   the last table stays in force.

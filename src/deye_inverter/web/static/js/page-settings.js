@@ -6,7 +6,8 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // Each field: [key, label, type, help]. Types: bool, int, float, time, times, dates, weekdays.
 const SECTIONS = [
   { key: null, title: "General", fields: [
-    ["max_writes_per_day", "Writes per day (max)", "int", "A safety net against a planner fault. A table that keeps more in the battery (higher SOC, grid charge on or earlier) is sent anyway, up to twice this number."],
+    ["max_writes_per_day", "Writes per day (max)", "int", "A safety net against a planner fault. After this many writes, a table that lowers the protection waits until midnight."],
+    ["max_raising_writes_per_day", "Writes per day when raising the protection (max)", "int", "A table that keeps more in the battery (higher SOC, grid charge on or earlier) is still sent up to this many writes a day. Both limits count the same writes."],
     ["min_minutes_between_writes", "Minutes between writes (min)", "int", "A table that lowers the protection or moves a grid start later waits this long after the previous write."],
   ] },
   { key: "reserve", title: "Outage reserve", fields: [

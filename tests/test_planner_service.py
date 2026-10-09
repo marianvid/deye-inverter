@@ -143,7 +143,7 @@ def test_raising_the_protection_ignores_the_gap_and_the_limit(world, primed) -> 
     assert world.services.planner.run("check 10:00").status == "executed"
     world.gateway.table = winter_table(soc=20, grid_charge=False)
     world.services.refresh_inverter()
-    set_mode(world, Mode.LIVE, max_writes_per_day=1)
+    set_mode(world, Mode.LIVE, max_writes_per_day=1, max_raising_writes_per_day=2)
     decision = world.services.planner.run("check 10:15")
     assert decision.status == "executed"
     assert "protection raised" in decision.message

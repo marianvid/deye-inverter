@@ -52,9 +52,19 @@ function renderMode(mode) {
   refreshModeBadge(mode);
 }
 
+// One counter, two limits: a table that keeps more in the battery has a higher one.
+function renderWrites(data) {
+  const left = (limit) => Math.max(0, limit - data.writes_today);
+  document.getElementById("writes-today").textContent = String(data.writes_today);
+  document.getElementById("writes-lowering").textContent =
+    `Lowering the protection: ${left(data.max_writes_per_day)} of ${data.max_writes_per_day} left.`;
+  document.getElementById("writes-raising").textContent =
+    `Raising it: ${left(data.max_raising_writes_per_day)} of ${data.max_raising_writes_per_day} left.`;
+}
+
 function render(data) {
   renderMode(data.mode);
-  document.getElementById("writes-today").textContent = `${data.writes_today} / ${data.max_writes_per_day}`;
+  renderWrites(data);
   renderPreview(data.preview);
   document.getElementById("next-runs").replaceChildren(...data.next_runs.map((r) => el("li", {}, `${localTime(r.next_run)} — ${r.job}`)));
   fillTable(document.getElementById("decisions"), ["When", "Trigger", "Mode", "Result", "Rules"],

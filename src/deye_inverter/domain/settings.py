@@ -111,6 +111,8 @@ class PlannerSettings:
     mode: Mode = Mode.DRY_RUN
     # Safety net against a planner fault, not a limit of the inverter or DeyeCloud.
     max_writes_per_day: int = 24
+    # A table that keeps more in the battery is sent past the limit above, up to this.
+    max_raising_writes_per_day: int = 48
     min_minutes_between_writes: int = 30
     reserve: ReserveSettings = field(default_factory=ReserveSettings)
     floor: FloorSettings = field(default_factory=FloorSettings)
@@ -136,6 +138,9 @@ class SettingsCodec:
         return PlannerSettings(
             mode=Mode(data.get("mode", defaults.mode)),
             max_writes_per_day=int(data.get("max_writes_per_day", defaults.max_writes_per_day)),
+            max_raising_writes_per_day=int(
+                data.get("max_raising_writes_per_day", defaults.max_raising_writes_per_day)
+            ),
             min_minutes_between_writes=int(
                 data.get("min_minutes_between_writes", defaults.min_minutes_between_writes)
             ),

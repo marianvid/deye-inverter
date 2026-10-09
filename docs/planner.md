@@ -81,7 +81,9 @@ DeyeCloud imposes one):
 - A table that **lowers the protection** or moves a grid start later waits until
   30 minutes [minutes between writes] after the previous write.
 - At most **24 tables** a day [writes per day]; tables that keep more in the
-  battery may go on up to twice that, so a fault cannot block a needed charge.
+  battery may go on up to **48** [writes per day when raising the protection],
+  so a fault cannot block a needed charge. Both limits count the same writes;
+  the Plan page shows how many of each are left.
 
 ## 5. A day, from 09:00
 

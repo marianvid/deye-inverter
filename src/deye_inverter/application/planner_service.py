@@ -32,7 +32,6 @@ from deye_inverter.ports import (
 LOG = logging.getLogger(__name__)
 DECISION = "decision"
 FORECAST_HORIZON = timedelta(days=2)
-URGENT_FACTOR = 2
 
 
 @dataclass
@@ -168,11 +167,11 @@ class PlannerService:
         self, settings: PlannerSettings, now: datetime, urgent: bool
     ) -> tuple[str, str] | None:
         """Write limits, a safety net against a planner fault. A table that keeps more in
-        the battery is sent anyway, up to twice the daily limit; one that lowers the
+        the battery is sent anyway, up to its own daily limit; one that lowers the
         protection or moves a grid start later waits."""
         writes = self._commands.writes_today()
         if urgent:
-            if writes >= URGENT_FACTOR * settings.max_writes_per_day:
+            if writes >= settings.max_raising_writes_per_day:
                 return "limit", "Daily write limit reached, even for raising the protection."
             return None
         if writes >= settings.max_writes_per_day:
