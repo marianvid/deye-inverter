@@ -66,7 +66,7 @@ function render(data) {
   renderMode(data.mode);
   renderWrites(data);
   renderPreview(data.preview);
-  document.getElementById("next-runs").replaceChildren(...data.next_runs.map((r) => el("li", {}, `${localTime(r.next_run)} — ${r.job}`)));
+  document.getElementById("next-check").textContent = data.next_check ? localTime(data.next_check) : "–";
   fillTable(document.getElementById("decisions"), ["When", "Trigger", "Mode", "Result", "Rules"],
     data.decisions.map((d) => [localTime(d.at), d.trigger, d.mode,
       el("span", { class: `status ${d.status}` }, d.status),

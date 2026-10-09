@@ -63,7 +63,7 @@ class PlanApi:
             "max_raising_writes_per_day": settings.max_raising_writes_per_day,
             "preview": self._services.planner.preview().as_dict(),
             "decisions": self._services.journal.recent("decision", 20),
-            "next_runs": scheduler.next_runs() if scheduler else [],
+            "next_check": scheduler.next_check() if scheduler else None,
         }
 
     def run_now(self) -> dict[str, Any]:

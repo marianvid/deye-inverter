@@ -24,6 +24,7 @@ def test_scheduler_registers_jobs(world) -> None:
     scheduler.schedule_planner(PlannerSettings(), calls.append)
     scheduler.start()
     try:
+        assert scheduler.next_check() is not None
         names = [run["job"] for run in scheduler.next_runs()]
         expected = len(JobScheduler.planner_times(PlannerSettings())) + 1
         assert "readings" in names and len(names) == expected
