@@ -44,6 +44,7 @@ class Decision:
     outcomes: list[RuleOutcome] = field(default_factory=list)
     desired: TimeOfUseTable | None = None
     changed_slots: list[int] = field(default_factory=list)
+    changes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -56,6 +57,7 @@ class Decision:
             ],
             "desired": table_to_dicts(self.desired) if self.desired else None,
             "changed_slots": self.changed_slots,
+            "changes": self.changes,
         }
 
 
@@ -139,7 +141,17 @@ class PlannerService:
         changed = desired.differences(current)
         status = "change" if changed else "no-change"
         message = "Inverter table already matches." if not changed else "Table differs."
-        return Decision(now, settings.mode, trigger, status, message, outcomes, desired, changed)
+        return Decision(
+            now,
+            settings.mode,
+            trigger,
+            status,
+            message,
+            outcomes,
+            desired,
+            changed,
+            desired.describe_changes(current),
+        )
 
     def _apply(self, settings: PlannerSettings, decision: Decision) -> None:
         if decision.desired is None:

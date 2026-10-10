@@ -67,10 +67,38 @@ function render(data) {
   renderWrites(data);
   renderPreview(data.preview);
   document.getElementById("next-check").textContent = data.next_check ? localTime(data.next_check) : "–";
-  fillTable(document.getElementById("decisions"), ["When", "Trigger", "Mode", "Result", "Rules"],
-    data.decisions.map((d) => [localTime(d.at), d.trigger, d.mode,
-      el("span", { class: `status ${d.status}` }, d.status),
-      d.rules.map((r) => r.summary).join(" ")]));
+  renderInverterTable(data.inverter_table);
+  renderDecisions(data.decisions);
+}
+
+// The table on the inverter now: the settings every decision below is measured against.
+function renderInverterTable(current) {
+  const note = document.getElementById("inverter-table-read");
+  const table = document.getElementById("inverter-table");
+  if (!current) {
+    note.textContent = "Inverter table: not read yet.";
+    table.replaceChildren();
+    return;
+  }
+  note.textContent = `On the inverter now (read ${localTime(current.read_at)}):`;
+  renderReadOnly(table, current.slots, []);
+}
+
+// What changed comes first; the rules' reasoning is folded below it.
+function changesCell(d) {
+  if (d.changes && d.changes.length) return el("div", { class: "changes" }, d.changes.map((c) => el("div", {}, c)));
+  return el("span", { class: "muted" }, d.changed_slots && d.changed_slots.length ? "table differs" : "–");
+}
+
+function reasonCell(d) {
+  return el("details", {}, el("summary", {}, "why"), el("p", {}, d.rules.map((r) => r.summary).join(" ")),
+    d.message ? el("p", { class: "muted" }, d.message) : null);
+}
+
+function renderDecisions(decisions) {
+  fillTable(document.getElementById("decisions"), ["When", "Result", "What changes", "Reason"],
+    decisions.map((d) => [`${localTime(d.at)} (${d.trigger}, ${d.mode})`,
+      el("span", { class: `status ${d.status}` }, d.status), changesCell(d), reasonCell(d)]));
 }
 
 async function load() {

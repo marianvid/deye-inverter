@@ -13,7 +13,7 @@ Protected moments: ``protect_from`` and every slot start after it, before
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 from deye_inverter.domain.outage import OutageLoad, OutageSimulation
 from deye_inverter.domain.rules import (
@@ -21,6 +21,7 @@ from deye_inverter.domain.rules import (
     PlannerContext,
     PlannerRule,
     RuleOutcome,
+    last_before,
     next_after,
     running_since,
 )
@@ -98,7 +99,7 @@ class ReserveRule(PlannerRule):
         outcome = self._charge.plan(replace(context, base_table=plan.table()), when, required)
         plan.add(moment, required, outcome.overrides)
         if "grid_from" in outcome.figures:
-            grid_from = outcome.figures["grid_from"]
+            grid_from = plan.grid_start(when)
             plan.figures[f"grid from (for {moment:%H:%M})"] = grid_from
             plan.notes.append(f"grid charge for {moment:%H:%M} from {grid_from}")
 
@@ -129,6 +130,17 @@ class _Plan:
             self.overrides[index] = slot
         self.figures[f"reserve {moment:%H:%M}"] = required
         self._levels.append(f"{moment:%H:%M} {required}%")
+
+    def grid_start(self, deadline: datetime) -> str:
+        """When grid charging for ``deadline`` starts in the table as merged so far.
+
+        The rule's own estimate can differ: a start that would cross a slot moved
+        earlier is not applied, and the earlier slot already charges.
+        """
+        table = self.table()
+        before = deadline - timedelta(minutes=1)
+        start = last_before(table.slots[table.index_at(before.time())].start, before)
+        return f"{start:%H:%M}"
 
     def _steady(self, index: int, slot: TimeOfUseSlot) -> TimeOfUseSlot:
         """Keeps the inverter's SOC when the new one is within the tolerance (fewer writes)."""

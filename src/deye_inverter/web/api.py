@@ -14,7 +14,12 @@ from deye_inverter.application.statistics import Period
 from deye_inverter.container import Services
 from deye_inverter.domain.manual import ManualChargeError
 from deye_inverter.domain.settings import Mode
-from deye_inverter.domain.time_of_use import TimeOfUseError, TimeOfUseTable, table_from_dicts
+from deye_inverter.domain.time_of_use import (
+    TimeOfUseError,
+    TimeOfUseTable,
+    table_from_dicts,
+    table_to_dicts,
+)
 from deye_inverter.ports import GatewayError
 
 
@@ -64,7 +69,16 @@ class PlanApi:
             "preview": self._services.planner.preview().as_dict(),
             "decisions": self._services.journal.recent("decision", 20),
             "next_check": scheduler.next_check() if scheduler else None,
+            "inverter_table": self._current_table(),
         }
+
+    def _current_table(self) -> dict[str, Any] | None:
+        """The table on the inverter, as last read, for the head of the decisions list."""
+        state = self._services.state
+        table = state.current_table()
+        if table is None:
+            return None
+        return {"read_at": state.current_table_read_at(), "slots": table_to_dicts(table)}
 
     def run_now(self) -> dict[str, Any]:
         return self._services.planner.run("manual").as_dict()

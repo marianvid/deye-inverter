@@ -90,6 +90,30 @@ class TimeOfUseTable:
         pairs = enumerate(zip(self.slots, other.slots, strict=True))
         return [i for i, (mine, theirs) in pairs if mine != theirs]
 
+    def describe_changes(self, before: TimeOfUseTable) -> list[str]:
+        """What changes from ``before`` to this table, one line per slot, in words.
+
+        A slot is named by its start in ``before``: "01:00: SOC 50% → 90%, grid charge on".
+        """
+        lines = []
+        for old, new in zip(before.slots, self.slots, strict=True):
+            parts = []
+            if new.start != old.start:
+                parts.append(f"starts {new.start:%H:%M}")
+            if new.soc != old.soc:
+                parts.append(f"SOC {old.soc}% → {new.soc}%")
+            if new.grid_charge != old.grid_charge:
+                parts.append(f"grid charge {'on' if new.grid_charge else 'off'}")
+            if new.power != old.power:
+                parts.append(f"power {old.power} → {new.power} W")
+            if new.voltage != old.voltage:
+                parts.append(f"voltage {old.voltage:g} → {new.voltage:g} V")
+            if new.generator_charge != old.generator_charge:
+                parts.append(f"generator charge {'on' if new.generator_charge else 'off'}")
+            if parts:
+                lines.append(f"{old.start:%H:%M}: {', '.join(parts)}")
+        return lines
+
     def protects_more_than(self, other: TimeOfUseTable) -> bool:
         """True when this table keeps more in the battery than ``other`` somewhere:
         a higher slot SOC, grid charge switched on, or grid charging starting earlier."""

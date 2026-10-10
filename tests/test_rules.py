@@ -157,3 +157,18 @@ def test_start_is_kept_when_the_next_slot_was_moved_over_the_deadline() -> None:
     )
     outcome = plan(context(at(10), soc=70, current=current))
     assert outcome.overrides[3].start == time(14, 45)
+
+
+def test_describe_changes() -> None:
+    before = winter_table(grid_charge=False)
+    after = before.replace_slots(
+        {
+            0: before.slots[0].with_changes(soc=90, grid_charge=True),
+            3: before.slots[3].with_changes(start=time(14, 45)),
+        }
+    )
+    assert after.describe_changes(before) == [
+        "01:00: SOC 55% → 90%, grid charge on",
+        "13:00: starts 14:45",
+    ]
+    assert before.describe_changes(before) == []

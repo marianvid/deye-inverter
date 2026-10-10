@@ -41,6 +41,8 @@ def test_live_writes_and_verifies(world, primed) -> None:
     set_mode(world, Mode.LIVE)
     first = world.services.planner.run("check 10:00")
     assert first.status == "executed"
+    assert first.changes and ":" in first.changes[0]
+    assert world.services.journal.recent("decision", 1)[0]["changes"] == first.changes
     assert len(world.gateway.written) == 1
     assert world.services.planner.run("again").status == "no-change"
 

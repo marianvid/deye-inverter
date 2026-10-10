@@ -325,3 +325,9 @@ ul.plain li { padding: 0.2rem 0; }
 @media (max-width: 640px) {
   .manual-box .dash, .manual-box .start-group .separator { display: none; }
 }
+
+/* Plan page: decisions lead with what changed; the inverter table sits above them. */
+table.data.compact { margin-bottom: 1rem; }
+table.data.compact td, table.data.compact th { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.changes div { white-space: nowrap; }
+details summary { cursor: pointer; color: var(--muted); }
