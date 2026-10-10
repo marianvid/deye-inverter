@@ -40,20 +40,21 @@
   <p class="muted small" id="manual-note"></p>
 </section>
 <section class="panel">
-  <div class="row spread">
-    <h2>What the planner would do now</h2>
+  <h2>Current settings</h2>
+  <p class="muted" id="inverter-table-read"></p>
+  <table class="data compact" id="inverter-table"></table>
+  <div id="last-change" class="last-change"></div>
+  <div class="row spread next-row">
+    <p>Next check: <strong id="next-check">–</strong></p>
     <button type="button" class="primary" id="run-now">Run a check now</button>
   </div>
+</section>
+<section class="panel">
+  <h2>What the planner would do now</h2>
   <div id="preview"></div>
 </section>
 <section class="panel">
-  <h2>Next check</h2>
-  <p class="big" id="next-check">–</p>
-</section>
-<section class="panel">
   <h2>Recent decisions</h2>
-  <p class="muted" id="inverter-table-read"></p>
-  <table class="data compact" id="inverter-table"></table>
   <table class="data" id="decisions"></table>
 </section>
 {% endblock %}

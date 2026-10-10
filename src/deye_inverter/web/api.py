@@ -11,6 +11,7 @@ from fastapi import APIRouter, Body, HTTPException, Query
 from deye_inverter.application.manual_charge import ManualChargeLockedError
 from deye_inverter.application.profiles import ProfileError, ProfilesLockedError
 from deye_inverter.application.statistics import Period
+from deye_inverter.application.time_of_use_service import ACCEPTED
 from deye_inverter.container import Services
 from deye_inverter.domain.manual import ManualChargeError
 from deye_inverter.domain.settings import Mode
@@ -21,6 +22,9 @@ from deye_inverter.domain.time_of_use import (
     table_to_dicts,
 )
 from deye_inverter.ports import GatewayError
+
+# Decisions searched for the last change: about five days of checks.
+LAST_CHANGE_SEARCH = 500
 
 
 class MonitoringApi:
@@ -70,6 +74,7 @@ class PlanApi:
             "decisions": self._services.journal.recent("decision", 20),
             "next_check": scheduler.next_check() if scheduler else None,
             "inverter_table": self._current_table(),
+            "last_change": self._last_change(),
         }
 
     def _current_table(self) -> dict[str, Any] | None:
@@ -79,6 +84,13 @@ class PlanApi:
         if table is None:
             return None
         return {"read_at": state.current_table_read_at(), "slots": table_to_dicts(table)}
+
+    def _last_change(self) -> dict[str, Any] | None:
+        """The latest decision that sent a table to the inverter."""
+        for decision in self._services.journal.recent("decision", LAST_CHANGE_SEARCH):
+            if decision.get("status") in ACCEPTED:
+                return decision
+        return None
 
     def run_now(self) -> dict[str, Any]:
         return self._services.planner.run("manual").as_dict()

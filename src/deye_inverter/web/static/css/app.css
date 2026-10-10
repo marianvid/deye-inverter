@@ -331,3 +331,8 @@ table.data.compact { margin-bottom: 1rem; }
 table.data.compact td, table.data.compact th { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 .changes div { white-space: nowrap; }
 details summary { cursor: pointer; color: var(--muted); }
+
+.last-change { margin-top: 0.5rem; }
+.last-change ul { margin: 0.25rem 0; }
+.next-row { margin-top: 1rem; border-top: 1px solid var(--border, #e5e7eb); padding-top: 0.75rem; }
+.next-row p { margin: 0; }

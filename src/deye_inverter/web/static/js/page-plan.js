@@ -68,6 +68,7 @@ function render(data) {
   renderPreview(data.preview);
   document.getElementById("next-check").textContent = data.next_check ? localTime(data.next_check) : "–";
   renderInverterTable(data.inverter_table);
+  renderLastChange(data.last_change);
   renderDecisions(data.decisions);
 }
 
@@ -80,14 +81,40 @@ function renderInverterTable(current) {
     table.replaceChildren();
     return;
   }
-  note.textContent = `On the inverter now (read ${localTime(current.read_at)}):`;
+  note.textContent = `Time of Use table on the inverter, read ${localTime(current.read_at)}.`;
   renderReadOnly(table, current.slots, []);
+}
+
+// What a decision changed, in words; older entries only know which rows changed.
+function changeLines(d) {
+  if (d.changes && d.changes.length) return d.changes;
+  const rows = (d.changed_slots || []).map((i) => (d.desired ? d.desired[i].start : `row ${i + 1}`));
+  return rows.length ? [`rows changed: ${rows.join(", ")}`] : [];
+}
+
+// Why: the rules that set something (the floor and an idle manual charge say nothing new).
+function whyText(d) {
+  const telling = d.rules.filter((r) => r.rule !== "floor" && !r.summary.startsWith("No manual"));
+  return (telling.length ? telling : d.rules).map((r) => r.summary).join(" ");
+}
+
+function renderLastChange(d) {
+  const box = document.getElementById("last-change");
+  if (!d) {
+    box.replaceChildren(el("p", { class: "muted" }, "Last change: none recorded yet."));
+    return;
+  }
+  box.replaceChildren(
+    el("p", {}, el("strong", {}, "Last change: "), `${localTime(d.at)} `,
+      el("span", { class: `status ${d.status}` }, d.status)),
+    el("ul", { class: "plain" }, changeLines(d).map((line) => el("li", {}, line))),
+    el("p", { class: "muted" }, el("strong", {}, "Why: "), whyText(d)));
 }
 
 // What changed comes first; the rules' reasoning is folded below it.
 function changesCell(d) {
-  if (d.changes && d.changes.length) return el("div", { class: "changes" }, d.changes.map((c) => el("div", {}, c)));
-  return el("span", { class: "muted" }, d.changed_slots && d.changed_slots.length ? "table differs" : "–");
+  const lines = changeLines(d);
+  return lines.length ? el("div", { class: "changes" }, lines.map((c) => el("div", {}, c))) : el("span", { class: "muted" }, "–");
 }
 
 function reasonCell(d) {

@@ -76,6 +76,13 @@ def test_plan_api(client) -> None:
     overview = client.get("/api/plan").json()
     assert overview["mode"] == "dry-run" and overview["preview"]["rules"]
     assert client.post("/api/plan/run").json()["trigger"] == "manual"
+    assert overview["last_change"] is None  # dry-run sends nothing
+    assert client.post("/api/plan/mode", json={"mode": "live"}).json() == {"mode": "live"}
+    sent = client.post("/api/plan/run").json()
+    after = client.get("/api/plan").json()
+    if sent["status"] == "executed":
+        assert after["last_change"]["changes"] == sent["changes"]
+    assert after["inverter_table"]["slots"]
     assert client.post("/api/plan/mode", json={"mode": "off"}).json() == {"mode": "off"}
     assert client.post("/api/plan/mode", json={"mode": "bogus"}).status_code == 400
     assert client.get("/api/log?kind=decision").json()[0]["kind"] == "decision"
