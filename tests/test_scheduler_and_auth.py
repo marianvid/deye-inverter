@@ -22,6 +22,7 @@ def test_scheduler_registers_jobs(world) -> None:
     calls = []
     scheduler.schedule_planner(PlannerSettings(), calls.append)
     scheduler.schedule_planner(PlannerSettings(), calls.append)
+    assert scheduler.next_check() is None  # not started yet
     scheduler.start()
     try:
         assert scheduler.next_check() is not None

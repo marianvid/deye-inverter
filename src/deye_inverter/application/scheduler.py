@@ -98,10 +98,13 @@ class JobScheduler:
 
     def next_check(self) -> str | None:
         """When the planner runs next (ISO time), or None before the scheduler starts."""
+        # A job has no next_run_time attribute until the scheduler has started.
+        jobs = self._scheduler.get_jobs()
         times = [
-            job.next_run_time
-            for job in self._scheduler.get_jobs()
-            if job.id.startswith(PLANNER_JOB_PREFIX) and job.next_run_time
+            run
+            for job in jobs
+            if job.id.startswith(PLANNER_JOB_PREFIX)
+            and (run := getattr(job, "next_run_time", None))
         ]
         return min(times).isoformat() if times else None
 
