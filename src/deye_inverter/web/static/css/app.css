@@ -336,3 +336,9 @@ details summary { cursor: pointer; color: var(--muted); }
 .last-change ul { margin: 0.25rem 0; }
 .next-row { margin-top: 1rem; border-top: 1px solid var(--border, #e5e7eb); padding-top: 0.75rem; }
 .next-row p { margin: 0; }
+
+/* Grid charge switch tile: same tile, the switch right-aligned under the label; blue when on. */
+.grid-switch-tile { display: flex; flex-direction: column; }
+.grid-switch-tile .switch { margin-top: 0.4rem; }
+.switch.blue input:checked + .slider { background: var(--accent); }
+.switch.blue:has(input:checked) .switch-label { color: var(--accent); }

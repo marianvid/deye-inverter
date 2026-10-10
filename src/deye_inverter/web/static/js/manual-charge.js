@@ -1,6 +1,6 @@
 // Battery state and the manual "charge to X %" switch on the Plan page.
 import { api } from "./api.js";
-import { notify, tile } from "./dom.js";
+import { el, notify, tile } from "./dom.js";
 import { batteryFlow, localTime } from "./format.js";
 
 const form = document.getElementById("manual-form");
@@ -14,12 +14,49 @@ const HELP = "Switch on to charge: Now, or Ready by a time (grid charging starts
 
 function batteryTiles(status) {
   const flow = batteryFlow(status.battery.power);
-  const grid = status.grid_charge_enabled === null ? "unknown" : status.grid_charge_enabled ? "on" : "off";
   return [
     tile("Battery", status.battery.soc ?? "–", "%", status.battery.at ? localTime(status.battery.at) : "", "--battery"),
     tile("Battery power", flow.value, "kW", flow.direction, "--battery"),
-    tile("Grid charge switch", grid, "", "", "--grid"),
+    gridSwitchTile(status),
   ];
+}
+
+let reload = async () => {};
+
+// The inverter's grid charge master switch, as a switch: blue "on", grey "off".
+// Shown on while the state is unknown (its default); locked during a manual charge,
+// which turns it on and restores it itself.
+function gridSwitchTile(status) {
+  const on = status.grid_charge_enabled !== false;
+  const input = el("input", { type: "checkbox", "aria-label": "Grid charge switch on or off" });
+  input.checked = on;
+  input.disabled = Boolean(status.charge);
+  const label = el("span", { class: "switch-label" }, on ? "on" : "off");
+  input.addEventListener("change", () => setGridCharge(input, label));
+  const box = el("div", { class: "tile grid-switch-tile", style: { "--tile-color": "var(--grid)" } },
+    el("div", { class: "label" }, "Grid charge switch"),
+    el("label", { class: "switch blue", title: status.charge ? "Set by the manual charge while it is on" : "Inverter grid charge master switch" },
+      label, input, el("span", { class: "slider" })));
+  return box;
+}
+
+async function setGridCharge(input, label) {
+  const enable = input.checked;
+  if (!enable && !window.confirm("With the grid charge switch off the inverter never charges from the grid, not even for the outage reserve. Turn it off?")) {
+    input.checked = true;
+    return;
+  }
+  input.disabled = true;
+  label.textContent = enable ? "on" : "off";
+  try {
+    await api.post("/api/charge-settings/grid-charge", { enabled: enable });
+    notify(`Grid charge switch turned ${enable ? "on" : "off"}.`);
+  } catch (error) {
+    input.checked = !enable;
+    notify(error.message, "error");
+  } finally {
+    await reload();
+  }
 }
 
 function clock(iso) {
@@ -74,6 +111,7 @@ async function cancel() {
 }
 
 export function bindManualForm(onChange) {
+  reload = onChange;
   for (const radio of form.elements.start) radio.addEventListener("change", syncReadyField);
   form.addEventListener("submit", (event) => event.preventDefault());
   toggle.addEventListener("change", async () => {
