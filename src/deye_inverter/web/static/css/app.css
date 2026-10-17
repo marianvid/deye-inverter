@@ -13,10 +13,10 @@
   --load: #6366f1;
   --backup: #a855f7;
   --grid: #64748b;
-  --battery: #0d9488;
-  /* SOC lines: red (and violet for the daily minimum) stand apart from the teal battery
-     power and the green fill of the battery bar. */
-  --soc: #dc2626;
+  --battery: #db2777;
+  /* SOC stays green; battery power is pink so the two lines differ; the daily SOC
+     minimum is violet so it differs from the maximum. No red: red reads as an alarm. */
+  --soc: #16a34a;
   --soc-min: #7c3aed;
   --soc-bar: #16a34a;
   --forecast: #60a5fa;
