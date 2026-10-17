@@ -14,7 +14,11 @@
   --backup: #a855f7;
   --grid: #64748b;
   --battery: #0d9488;
-  --soc: #16a34a;
+  /* SOC lines: red (and violet for the daily minimum) stand apart from the teal battery
+     power and the green fill of the battery bar. */
+  --soc: #dc2626;
+  --soc-min: #7c3aed;
+  --soc-bar: #16a34a;
   --forecast: #60a5fa;
   --radius: 10px;
 }
@@ -129,7 +133,7 @@ h2 { font-size: 1.05rem; margin: 1.5rem 0 0.6rem; }
   overflow: hidden;
 }
 
-.soc-fill { height: 100%; width: 0; background: var(--soc); opacity: 0.35; transition: width 0.4s; }
+.soc-fill { height: 100%; width: 0; background: var(--soc-bar); opacity: 0.35; transition: width 0.4s; }
 
 .soc-bar span {
   position: absolute;

@@ -58,7 +58,7 @@ function barChart(data) {
   const scales = { x: { stacked: true }, y: { stacked: true, title: { display: true, text: "kWh" } } };
   if (data.soc_by_day) {
     const byDay = new Map(data.soc_by_day.map((s) => [s.day, s]));
-    datasets.push(series("SOC min %", labels.map((l) => byDay.get(l)?.min ?? null), "--soc", { type: "line", yAxisID: "soc", borderDash: [4, 3] }));
+    datasets.push(series("SOC min %", labels.map((l) => byDay.get(l)?.min ?? null), "--soc-min", { type: "line", yAxisID: "soc", borderDash: [4, 3] }));
     datasets.push(series("SOC max %", labels.map((l) => byDay.get(l)?.max ?? null), "--soc", { type: "line", yAxisID: "soc" }));
     scales.soc = { position: "right", min: 0, max: 100, grid: { drawOnChartArea: false } };
   }
