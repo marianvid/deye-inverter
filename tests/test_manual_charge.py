@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 
 import pytest
 
@@ -9,10 +9,11 @@ from deye_inverter.domain.load import LoadProfile
 from deye_inverter.domain.manual import ManualCharge, ManualChargeError, ManualChargeRule
 from deye_inverter.domain.rules import PlannerContext
 from deye_inverter.domain.settings import Mode, SiteSettings, TuningSettings
+from tests.conftest import Primed, World
 from tests.fakes import at, reading, winter_table
 
 
-def context(now, soc=60.0) -> PlannerContext:
+def context(now: datetime, soc: float = 60.0) -> PlannerContext:
     return PlannerContext(
         now=now,
         soc=soc,
@@ -26,7 +27,7 @@ def context(now, soc=60.0) -> PlannerContext:
     )
 
 
-def live(world) -> None:
+def live(world: World) -> None:
     settings = world.services.settings.load()
     world.services.settings.save(replace(settings, mode=Mode.LIVE))
 
@@ -94,13 +95,13 @@ def test_rule_without_charge_does_nothing() -> None:
 # --- service ---------------------------------------------------------------------------
 
 
-def test_manual_charge_only_in_live(world, primed) -> None:
+def test_manual_charge_only_in_live(world: World, primed: Primed) -> None:
     primed()
     with pytest.raises(ManualChargeLockedError):
         world.services.manual.start(80, None, None)
 
 
-def test_start_now_writes_and_finishes_when_reached(world, primed) -> None:
+def test_start_now_writes_and_finishes_when_reached(world: World, primed: Primed) -> None:
     primed()
     live(world)
     result = world.services.manual.start(90, None, None)
@@ -114,26 +115,27 @@ def test_start_now_writes_and_finishes_when_reached(world, primed) -> None:
     assert world.gateway.table.slots[2].soc == 30
 
 
-def test_already_reached_target_is_refused(world, primed) -> None:
+def test_already_reached_target_is_refused(world: World, primed: Primed) -> None:
     primed()
     live(world)
     with pytest.raises(ManualChargeError):
         world.services.manual.start(50, None, None)
 
 
-def test_grid_switch_is_turned_on_and_restored(world, primed) -> None:
+def test_grid_switch_is_turned_on_and_restored(world: World, primed: Primed) -> None:
     world.gateway.grid_charge = False
     primed()
     live(world)
     world.services.manual.start(90, None, None)
     assert world.gateway.grid_charge is True
-    assert world.services.manual.current().restore_grid_switch_off
+    charge = world.services.manual.current()
+    assert charge is not None and charge.restore_grid_switch_off
     world.services.manual.cancel()
     assert world.gateway.grid_charge is False
     assert world.services.manual.current() is None
 
 
-def test_grid_switch_failure_stops_the_start(world, primed) -> None:
+def test_grid_switch_failure_stops_the_start(world: World, primed: Primed) -> None:
     world.gateway.grid_charge = False
     primed()
     live(world)
@@ -143,19 +145,23 @@ def test_grid_switch_failure_stops_the_start(world, primed) -> None:
     assert world.services.manual.current() is None
 
 
-def test_ready_by_and_hold_times_resolve_to_the_next_occurrence(world, primed) -> None:
+def test_ready_by_and_hold_times_resolve_to_the_next_occurrence(
+    world: World, primed: Primed
+) -> None:
     primed()
     live(world)
     world.services.manual.start(80, time(16, 0), time(16, 0))
     charge = world.services.manual.current()
+    assert charge is not None
     assert charge.ready_at == at(16) and charge.hold_until == at(16)
     world.services.manual.cancel()
     world.services.manual.start(80, time(9, 0), time(8, 0))
     charge = world.services.manual.current()
+    assert charge is not None
     assert charge.ready_at == at(9, day=6) and charge.hold_until == at(8, day=7)
 
 
-def test_tick_follows_and_ends(world, primed) -> None:
+def test_tick_follows_and_ends(world: World, primed: Primed) -> None:
     primed()
     live(world)
     world.services.manual.tick()  # nothing active: no error
@@ -167,7 +173,7 @@ def test_tick_follows_and_ends(world, primed) -> None:
     assert world.services.manual.current() is None
 
 
-def test_leaving_live_cancels(world, primed) -> None:
+def test_leaving_live_cancels(world: World, primed: Primed) -> None:
     primed()
     live(world)
     world.services.manual.start(90, None, None)
@@ -177,7 +183,7 @@ def test_leaving_live_cancels(world, primed) -> None:
     assert world.services.manual.current() is None
 
 
-def test_manual_writes_ignore_the_daily_limit(world, primed) -> None:
+def test_manual_writes_ignore_the_daily_limit(world: World, primed: Primed) -> None:
     primed()
     settings = world.services.settings.load()
     world.services.settings.save(replace(settings, mode=Mode.LIVE, max_writes_per_day=0))
@@ -185,7 +191,7 @@ def test_manual_writes_ignore_the_daily_limit(world, primed) -> None:
     assert result["decision"]["status"] == "executed"
 
 
-def test_status_shows_battery_and_switch(world, primed) -> None:
+def test_status_shows_battery_and_switch(world: World, primed: Primed) -> None:
     primed()
     status = world.services.manual.status()
     assert status["battery"]["soc"] == 60

@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from pathlib import Path
 
 from deye_inverter.adapters.sqlite_store import (
     Database,
@@ -14,7 +15,7 @@ from deye_inverter.domain.settings import Mode, PlannerSettings
 from tests.fakes import ZONE, at, flat_forecast, reading
 
 
-def test_readings_round_trip_and_samples_per_day(tmp_path) -> None:
+def test_readings_round_trip_and_samples_per_day(tmp_path: Path) -> None:
     repo = SqliteReadingRepository(Database(tmp_path / "sub" / "deye.db"), ZONE)
     assert repo.latest() is None
     for hour, solar in ((9, 1.0), (12, 4.0), (15, 7.5)):

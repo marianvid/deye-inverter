@@ -1,7 +1,8 @@
+from tests.conftest import World
 from tests.fakes import winter_table
 
 
-def test_send_verifies_and_logs(world) -> None:
+def test_send_verifies_and_logs(world: World) -> None:
     table = winter_table(soc=40)
     outcome = world.services.time_of_use.send(table, "manual")
     assert outcome.status == "executed" and outcome.verified
@@ -11,7 +12,7 @@ def test_send_verifies_and_logs(world) -> None:
     assert world.services.time_of_use.writes_today() == 1
 
 
-def test_rejected_mismatch_and_failure(world) -> None:
+def test_rejected_mismatch_and_failure(world: World) -> None:
     world.gateway.accept = False
     assert world.services.time_of_use.send(winter_table(soc=40), "manual").status == "failed"
     world.gateway.accept = True

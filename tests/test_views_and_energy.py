@@ -6,12 +6,13 @@ from deye_inverter.application.energy_model import EnergyModel, today_solar
 from deye_inverter.application.views import hourly_energy
 from deye_inverter.domain.readings import BatterySettings, ChargeSettings
 from deye_inverter.domain.settings import SiteSettings, TuningSettings
+from tests.conftest import Primed, World
 from tests.fakes import ZONE, at, flat_forecast, reading
 
 TUNING = TuningSettings()
 
 
-def test_views_after_collection(world, primed) -> None:
+def test_views_after_collection(world: World, primed: Primed) -> None:
     primed()
     now = world.services.views.now()
     assert now["reading"]["battery_soc"] == 60
@@ -28,7 +29,7 @@ def test_views_after_collection(world, primed) -> None:
     assert tou["current"] == tou["base"]
 
 
-def test_empty_views(world) -> None:
+def test_empty_views(world: World) -> None:
     assert world.services.views.now() == {
         "reading": None,
         "age_seconds": None,
@@ -44,7 +45,7 @@ def test_hourly_energy_from_mean_power() -> None:
     assert [h["solar_kwh"] for h in hours] == [1.0, 1.0]
 
 
-def test_energy_model(world) -> None:
+def test_energy_model(world: World) -> None:
     model = EnergyModel(world.services.views._readings)
     forecast = flat_forecast(at(6), 10, 1.0)
     assert model.solar_ratio(at(6, 10), forecast, 0.0, TUNING) == 1.0

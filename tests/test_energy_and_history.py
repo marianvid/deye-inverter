@@ -11,6 +11,7 @@ from deye_inverter.application.statistics import Period
 from deye_inverter.config import Credentials
 from deye_inverter.domain.energy import EnergyBalance, total
 from deye_inverter.ports import GatewayError
+from tests.conftest import Primed, World
 from tests.fakes import at, reading
 
 
@@ -111,7 +112,7 @@ def test_cloud_history_errors() -> None:
         _ = DeyeCloudHistory(client, "UTC").station_id
 
 
-def test_sync_daily_full_then_recent(world) -> None:
+def test_sync_daily_full_then_recent(world: World) -> None:
     world.services.sync_daily()
     assert world.history.daily_calls == [(date(2026, 10, 1), date(2026, 10, 4))]
     world.clock.moment = at(10, day=20)
@@ -122,7 +123,7 @@ def test_sync_daily_full_then_recent(world) -> None:
     assert len(world.history.daily_calls) == 2
 
 
-def test_record_today_and_backfill(world, primed) -> None:
+def test_record_today_and_backfill(world: World, primed: Primed) -> None:
     world.services.record_today()
     primed()
     world.services.record_today()
@@ -139,14 +140,14 @@ def test_record_today_and_backfill(world, primed) -> None:
     assert world.services.backfill() == {"filled": 0, "remaining": 0}
 
 
-def test_record_today_uses_local_day(world) -> None:
+def test_record_today_uses_local_day(world: World) -> None:
     world.gateway.live = reading(at(0, 2), solar_today=0.0)
     world.services.collect_readings()
     world.services.record_today()
     assert world.services.statistics.summary(Period.DAY)["days_with_data"] == 1
 
 
-def test_backfill_retries_a_refused_day_then_gives_up(world) -> None:
+def test_backfill_retries_a_refused_day_then_gives_up(world: World) -> None:
     world.history.failing = {date(2026, 10, 3)}
     assert world.services.backfill() == {"filled": 1, "remaining": 3}
     assert world.services.backfill() == {"filled": 0, "remaining": 3}

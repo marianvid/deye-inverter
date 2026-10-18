@@ -5,9 +5,10 @@ import pytest
 from deye_inverter.application.auth import PasswordError, PasswordService
 from deye_inverter.application.scheduler import GuardedJob, JobScheduler
 from deye_inverter.domain.settings import PlannerSettings
+from tests.conftest import World
 
 
-def test_guarded_job_logs_failures(world) -> None:
+def test_guarded_job_logs_failures(world: World) -> None:
     def boom() -> None:
         raise RuntimeError("nope")
 
@@ -16,10 +17,10 @@ def test_guarded_job_logs_failures(world) -> None:
     assert entry["job"] == "readings" and entry["message"] == "nope"
 
 
-def test_scheduler_registers_jobs(world) -> None:
+def test_scheduler_registers_jobs(world: World) -> None:
     scheduler = JobScheduler("Europe/Bucharest", world.services.journal, world.clock)
     scheduler.add_interval("readings", lambda: None, 5)
-    calls = []
+    calls: list[str] = []
     scheduler.schedule_planner(PlannerSettings(), calls.append)
     scheduler.schedule_planner(PlannerSettings(), calls.append)
     assert scheduler.next_check() is None  # not started yet
@@ -35,7 +36,7 @@ def test_scheduler_registers_jobs(world) -> None:
     assert JobScheduler.planner_times(PlannerSettings())[-1] == time(23, 45)
 
 
-def test_password_service(world) -> None:
+def test_password_service(world: World) -> None:
     passwords: PasswordService = world.services.passwords
     assert not passwords.is_set() and not passwords.verify("anything")
     with pytest.raises(PasswordError):

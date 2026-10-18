@@ -1,15 +1,18 @@
+from collections.abc import Iterator
+
 import pytest
 from fastapi.testclient import TestClient
 
 from deye_inverter.domain.time_of_use import table_to_dicts
 from deye_inverter.web.app import create_app
+from tests.conftest import Primed, World
 from tests.fakes import winter_table
 
 PASSWORD = "correct horse"
 
 
 @pytest.fixture
-def client(world, primed):
+def client(world: World, primed: Primed) -> Iterator[TestClient]:
     primed()
     with TestClient(create_app(world.services)) as test_client:
         yield test_client
@@ -22,7 +25,7 @@ def login(client: TestClient) -> None:
     assert response.status_code == 303
 
 
-def test_first_visit_requires_setup(client) -> None:
+def test_first_visit_requires_setup(client: TestClient) -> None:
     assert client.get("/", follow_redirects=False).headers["location"] == "/setup"
     assert client.get("/api/now").status_code == 401
     assert client.get("/setup").status_code == 200
@@ -34,7 +37,7 @@ def test_first_visit_requires_setup(client) -> None:
     assert client.get("/").status_code == 200
 
 
-def test_login_logout_cycle(client) -> None:
+def test_login_logout_cycle(client: TestClient) -> None:
     login(client)
     client.post("/logout")
     assert client.get("/", follow_redirects=False).headers["location"] == "/login"
@@ -55,13 +58,13 @@ def test_login_logout_cycle(client) -> None:
 @pytest.mark.parametrize(
     "path", ["/", "/statistics", "/forecast", "/plan", "/time-of-use", "/settings", "/log"]
 )
-def test_pages_render(client, path) -> None:
+def test_pages_render(client: TestClient, path: str) -> None:
     login(client)
     response = client.get(path)
     assert response.status_code == 200 and "Deye Inverter" in response.text
 
 
-def test_monitoring_api(client) -> None:
+def test_monitoring_api(client: TestClient) -> None:
     login(client)
     assert client.get("/api/now").json()["reading"]["battery_soc"] == 60
     assert client.get("/api/history/day?day=2026-10-05").json()["day"] == "2026-10-05"
@@ -71,7 +74,7 @@ def test_monitoring_api(client) -> None:
     assert client.get("/static/css/app.css").status_code == 200
 
 
-def test_plan_api(client) -> None:
+def test_plan_api(client: TestClient) -> None:
     login(client)
     overview = client.get("/api/plan").json()
     assert overview["mode"] == "dry-run" and overview["preview"]["rules"]
@@ -88,7 +91,7 @@ def test_plan_api(client) -> None:
     assert client.get("/api/log?kind=decision").json()[0]["kind"] == "decision"
 
 
-def test_time_of_use_api(client, world) -> None:
+def test_time_of_use_api(client: TestClient, world: World) -> None:
     login(client)
     assert client.get("/api/time-of-use").json()["current"][3]["soc"] == 75
     slots = table_to_dicts(winter_table(soc=40))
@@ -103,7 +106,7 @@ def test_time_of_use_api(client, world) -> None:
     assert client.post("/api/time-of-use/refresh").status_code == 502
 
 
-def test_settings_api(client) -> None:
+def test_settings_api(client: TestClient) -> None:
     login(client)
     settings = client.get("/api/settings").json()
     settings["reserve"]["max_soc"] = 80
@@ -114,7 +117,7 @@ def test_settings_api(client) -> None:
     assert client.post("/api/settings", json=settings).status_code == 400
 
 
-def test_manual_charge_api(client, world) -> None:
+def test_manual_charge_api(client: TestClient, world: World) -> None:
     login(client)
     assert client.get("/api/manual-charge").json()["charge"] is None
     body = {"target_soc": 90, "ready_time": None, "hold_until": None}
@@ -130,7 +133,7 @@ def test_manual_charge_api(client, world) -> None:
     assert client.get("/plan").status_code == 200
 
 
-def test_static_files_are_revalidated(client) -> None:
+def test_static_files_are_revalidated(client: TestClient) -> None:
     response = client.get("/static/js/manual-charge.js")
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-cache"

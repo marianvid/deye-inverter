@@ -3,11 +3,12 @@ from datetime import date
 import pytest
 
 from deye_inverter.application.statistics import Period, SpanCalculator, averaged
+from tests.conftest import Primed, World
 from tests.fakes import at, reading
 
 
 @pytest.fixture
-def filled(world, primed):
+def filled(world: World, primed: Primed) -> World:
     primed()
     world.services.sync_daily()
     world.services.record_today()
@@ -29,7 +30,7 @@ def test_spans_and_navigation() -> None:
     assert calc.span(Period.LIFETIME, date(2026, 10, 5)).start == date(2026, 6, 12)
 
 
-def test_day_summary_has_curve_and_totals(filled) -> None:
+def test_day_summary_has_curve_and_totals(filled: World) -> None:
     stats = filled.services.statistics.summary(Period.DAY, date(2026, 10, 4))
     assert stats["totals"] == {
         "solar": 10,
@@ -43,7 +44,7 @@ def test_day_summary_has_curve_and_totals(filled) -> None:
     assert len(stats["curve"]["times"]) == 12 and stats["buckets"] == []
 
 
-def test_week_month_year_lifetime(filled) -> None:
+def test_week_month_year_lifetime(filled: World) -> None:
     stats = filled.services.statistics
     week = stats.summary(Period.WEEK, date(2026, 10, 5))
     assert week["days_with_data"] == 1 and week["curve"]["times"]
@@ -57,7 +58,7 @@ def test_week_month_year_lifetime(filled) -> None:
     assert lifetime["inverter_counters"] is not None
 
 
-def test_future_anchor_is_clamped(filled) -> None:
+def test_future_anchor_is_clamped(filled: World) -> None:
     assert filled.services.statistics.summary(Period.DAY, date(2030, 1, 1))["start"] == "2026-10-05"
 
 

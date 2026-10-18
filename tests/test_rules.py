@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import time
+from datetime import datetime, time
 
 import pytest
 
@@ -9,11 +9,13 @@ from deye_inverter.domain.rules import (
     FloorRule,
     JustInTimeCharge,
     PlannerContext,
+    RuleOutcome,
     next_after,
     round_down,
     running_since,
 )
 from deye_inverter.domain.settings import FloorSettings, SiteSettings, TuningSettings
+from deye_inverter.domain.time_of_use import TimeOfUseTable
 from tests.fakes import at, flat_forecast, winter_table
 
 # at(...) defaults to Monday 2026-10-05; the winter table starts slots at 01, 05, 09, 13, 17, 21.
@@ -21,7 +23,13 @@ TUNING = TuningSettings()
 
 
 def context(
-    now, soc=60.0, forecast=None, load_kw=0.6, ratio=1.0, current=None, floor=20
+    now: datetime,
+    soc: float = 60.0,
+    forecast: Forecast | None = None,
+    load_kw: float = 0.6,
+    ratio: float = 1.0,
+    current: TimeOfUseTable | None = None,
+    floor: int = 20,
 ) -> PlannerContext:
     return PlannerContext(
         now=now,
@@ -37,14 +45,19 @@ def context(
     )
 
 
-def charging_from(index: int, hour: int, minute: int):
+def charging_from(index: int, hour: int, minute: int) -> TimeOfUseTable:
     """The winter table with one slot moved and grid charge on, as the planner sends it."""
     base = winter_table()
     moved = base.slots[index].with_changes(start=time(hour, minute), grid_charge=True)
     return base.replace_slots({index: moved})
 
 
-def plan(ctx, target=75, deadline=None, tuning=TUNING):
+def plan(
+    ctx: PlannerContext,
+    target: int = 75,
+    deadline: datetime | None = None,
+    tuning: TuningSettings = TUNING,
+) -> RuleOutcome:
     return JustInTimeCharge("test", tuning).plan(ctx, deadline or at(16), target)
 
 

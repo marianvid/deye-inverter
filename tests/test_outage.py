@@ -1,5 +1,6 @@
 from dataclasses import replace
-from datetime import time
+from datetime import datetime, time
+from typing import Any
 
 from deye_inverter.application.planner_service import merge_slot
 from deye_inverter.domain.forecast import Forecast
@@ -8,13 +9,14 @@ from deye_inverter.domain.outage import OutageLoad, OutageSimulation
 from deye_inverter.domain.reserve import ReserveRule
 from deye_inverter.domain.rules import PlannerContext
 from deye_inverter.domain.settings import ReserveSettings, SiteSettings, TuningSettings
+from deye_inverter.domain.time_of_use import TimeOfUseTable
 from tests.fakes import at, flat_forecast, winter_table
 
 BASE = LoadProfile.flat(0.25)  # night load 0.25 kW -> 0.3125 kW with the 1.25 margin
 NEXT_MORNING_SUN = flat_forecast(at(9, day=6), 8, 2.0)
 
 
-def simulation(forecast, **changes) -> OutageSimulation:
+def simulation(forecast: Forecast, **changes: Any) -> OutageSimulation:
     settings = ReserveSettings(**changes)
     return OutageSimulation(settings, OutageLoad(settings, BASE), forecast, 16.0, 20)
 
@@ -60,7 +62,9 @@ def test_cap_and_generator() -> None:
     assert simulation(Forecast(())).required_at(at(16)) == 90
 
 
-def context(now, soc=60.0, current=None) -> PlannerContext:
+def context(
+    now: datetime, soc: float = 60.0, current: TimeOfUseTable | None = None
+) -> PlannerContext:
     return PlannerContext(
         now=now,
         soc=soc,
@@ -75,7 +79,7 @@ def context(now, soc=60.0, current=None) -> PlannerContext:
     )
 
 
-def rule(**changes) -> ReserveRule:
+def rule(**changes: Any) -> ReserveRule:
     return ReserveRule(ReserveSettings(**changes), TuningSettings())
 
 

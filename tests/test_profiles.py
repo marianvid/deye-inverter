@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from dataclasses import replace
 
 import pytest
@@ -7,14 +8,15 @@ from deye_inverter.application.profiles import ProfileError, ProfilesLockedError
 from deye_inverter.domain.settings import Mode
 from deye_inverter.domain.time_of_use import table_to_dicts
 from deye_inverter.web.app import create_app
+from tests.conftest import Primed, World
 from tests.fakes import winter_table
 
 
-def set_mode(world, mode: Mode) -> None:
+def set_mode(world: World, mode: Mode) -> None:
     world.services.settings.save(replace(world.services.settings.load(), mode=mode))
 
 
-def test_save_replace_delete(world) -> None:
+def test_save_replace_delete(world: World) -> None:
     profiles = world.services.profiles
     assert profiles.all() == []
     profiles.save(" winter ", winter_table())
@@ -27,7 +29,7 @@ def test_save_replace_delete(world) -> None:
         profiles.save("   ", winter_table())
 
 
-def test_apply_only_when_automation_is_off(world) -> None:
+def test_apply_only_when_automation_is_off(world: World) -> None:
     profiles = world.services.profiles
     profiles.save("cheap night", winter_table(soc=30))
     with pytest.raises(ProfilesLockedError):
@@ -42,14 +44,14 @@ def test_apply_only_when_automation_is_off(world) -> None:
 
 
 @pytest.fixture
-def logged_in(world, primed):
+def logged_in(world: World, primed: Primed) -> Iterator[TestClient]:
     primed()
     with TestClient(create_app(world.services)) as client:
         client.post("/setup", data={"password": "correct horse", "confirm": "correct horse"})
         yield client
 
 
-def test_profiles_api(logged_in, world) -> None:
+def test_profiles_api(logged_in: TestClient, world: World) -> None:
     client = logged_in
     slots = table_to_dicts(winter_table(soc=30))
     shown = client.post("/api/time-of-use/profiles", json={"name": "night", "slots": slots}).json()
@@ -68,11 +70,12 @@ def test_profiles_api(logged_in, world) -> None:
     assert tou["charge_settings"]["grid_charge_enabled"] is True
 
 
-def test_grid_charge_switch(world) -> None:
+def test_grid_charge_switch(world: World) -> None:
     charging = world.services.charging
     outcome = charging.set_grid_charge(False)
     assert outcome.status == "executed" and world.gateway.grid_charge is False
-    assert world.services.state.charge_settings().grid_charge_enabled is False
+    charge_settings = world.services.state.charge_settings()
+    assert charge_settings is not None and charge_settings.grid_charge_enabled is False
     assert world.services.journal.recent("setting", 1)[0]["reason"] == "grid charge off"
     world.gateway.ignore_writes = True
     assert charging.set_grid_charge(True).status == "mismatch"
@@ -82,7 +85,7 @@ def test_grid_charge_switch(world) -> None:
     assert "cloud down" in charging.set_grid_charge(True).message
 
 
-def test_grid_charge_api(logged_in, world) -> None:
+def test_grid_charge_api(logged_in: TestClient, world: World) -> None:
     answer = logged_in.post("/api/charge-settings/grid-charge", json={"enabled": False}).json()
     assert answer["status"] == "executed"
     assert answer["charge_settings"]["grid_charge_enabled"] is False

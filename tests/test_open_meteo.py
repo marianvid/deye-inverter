@@ -7,7 +7,7 @@ from deye_inverter.ports import GatewayError
 
 
 def test_turns_irradiance_into_energy() -> None:
-    seen = {}
+    seen: dict[str, str] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.update(request.url.params)

@@ -26,6 +26,10 @@ class World:
     history: FakeHistory
 
 
+# What the `primed` fixture returns: call it to collect data, get the world back.
+Primed = Callable[[], World]
+
+
 @pytest.fixture
 def world() -> World:
     gateway = FakeGateway()
@@ -40,7 +44,7 @@ def world() -> World:
 
 
 @pytest.fixture
-def primed(world: World) -> Callable[[], World]:
+def primed(world: World) -> Primed:
     """A world in which readings, inverter settings and a forecast were collected."""
 
     def prime() -> World:
