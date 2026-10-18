@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -27,19 +28,27 @@ TOU_ITEMS = [
 ]
 
 
+Special = Callable[[str], dict[str, Any] | None]
+
+
 class FakeCloud:
-    def __init__(self) -> None:
+    """The cloud API in memory; `special(path)` answers a path differently for one test (None: as
+    usual)."""
+
+    def __init__(self, special: Special | None = None) -> None:
         self.calls: list[tuple[str, Any]] = []
         self.order_statuses = ["100", "666"]
         self.token_requests = 0
+        self.special = special
 
     def handle(self, request: httpx.Request) -> httpx.Response:
         path = request.url.path.removeprefix("/v1.0")
         body = json.loads(request.content) if request.content else None
         self.calls.append((path, body))
-        return httpx.Response(200, json=self._answer(path))
+        answer = self.special(path) if self.special else None
+        return httpx.Response(200, json=answer if answer is not None else self.standard(path))
 
-    def _answer(self, path: str) -> dict[str, Any]:
+    def standard(self, path: str) -> dict[str, Any]:
         ok = {"code": "1000000", "msg": "success"}
         if path == "/account/token":
             self.token_requests += 1
@@ -148,7 +157,9 @@ def test_errors_raise_gateway_error() -> None:
 
 def test_codec_accepts_both_time_formats() -> None:
     codec = TimeOfUseCodec()
-    items = [dict(item, time=f"{item['time'][:2]}:{item['time'][2:]}") for item in TOU_ITEMS]
+    items = [
+        dict(item, time=f"{str(item['time'])[:2]}:{str(item['time'])[2:]}") for item in TOU_ITEMS
+    ]
     assert codec.decode(items) == codec.decode(TOU_ITEMS)
 
 
@@ -163,15 +174,15 @@ def test_reads_charge_settings_through_a_read_order() -> None:
         "00D3": "190",
     }
 
-    def answer(path: str) -> dict[str, Any]:
+    def answer(path: str) -> dict[str, Any] | None:
         ok = {"code": "1000000", "msg": "success"}
         if path == "/strategy/dynamicControl/read":
             return {"code": "1106000", "orderId": 88}
         if path == "/order/88":
             return {**ok, "status": 666, "analysisResult": json.dumps(registers)}
-        return FakeCloud._answer(cloud, path)
+        return None
 
-    cloud._answer = answer  # type: ignore[method-assign]
+    cloud.special = answer
     settings = gateway(cloud).read_charge_settings()
     assert settings.grid_charge_enabled and settings.grid_charge_current == 60
     assert settings.time_of_use_enabled and settings.work_mode == "Zero export to CT"
@@ -187,23 +198,23 @@ def test_reads_charge_settings_through_a_read_order() -> None:
 def test_read_order_failures() -> None:
     cloud = FakeCloud()
 
-    def answer(path: str) -> dict[str, Any]:
+    def answer(path: str) -> dict[str, Any] | None:
         if path == "/strategy/dynamicControl/read":
             return {"code": "1106000"}
-        return FakeCloud._answer(cloud, path)
+        return None
 
-    cloud._answer = answer  # type: ignore[method-assign]
+    cloud.special = answer
     with pytest.raises(GatewayError, match="no order id"):
         gateway(cloud).read_charge_settings()
 
-    def failed(path: str) -> dict[str, Any]:
+    def failed(path: str) -> dict[str, Any] | None:
         if path == "/strategy/dynamicControl/read":
             return {"code": "1106000", "orderId": 9}
         if path == "/order/9":
             return {"code": "1000000", "status": 500}
-        return FakeCloud._answer(cloud, path)
+        return None
 
-    cloud._answer = failed  # type: ignore[method-assign]
+    cloud.special = failed
     with pytest.raises(GatewayError, match="status 500"):
         gateway(cloud).read_charge_settings()
 
@@ -211,21 +222,21 @@ def test_read_order_failures() -> None:
 def test_grid_charge_mode_control() -> None:
     cloud = FakeCloud()
 
-    def answer(path: str) -> dict[str, Any]:
+    def answer(path: str) -> dict[str, Any] | None:
         if path == "/order/battery/modeControl":
             return {"code": "1106000", "orderId": 77}
-        return FakeCloud._answer(cloud, path)
+        return None
 
-    cloud._answer = answer  # type: ignore[method-assign]
+    cloud.special = answer
     assert gateway(cloud).set_grid_charge(False).accepted
     body = next(b for p, b in cloud.calls if p == "/order/battery/modeControl")
     assert body == {"deviceSn": "INV1", "batteryModeType": "GRID_CHARGE", "action": "off"}
 
-    def no_order(path: str) -> dict[str, Any]:
+    def no_order(path: str) -> dict[str, Any] | None:
         if path == "/order/battery/modeControl":
             return {"code": "1106000"}
-        return FakeCloud._answer(cloud, path)
+        return None
 
-    cloud._answer = no_order  # type: ignore[method-assign]
+    cloud.special = no_order
     with pytest.raises(GatewayError):
         gateway(cloud).set_grid_charge(True)
