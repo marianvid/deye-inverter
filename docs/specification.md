@@ -145,7 +145,7 @@ pytest (branch coverage ≥ 80 %), ruff, mypy strict, the reviewer's gate.
 
 ## 10. Open points
 
-- Writes per day on changeable days are still high (12–24 on 2026-10-15 … 17): grid starts far ahead are re-planned often, and a running slot's grid charge flips on/off around the reserve. To be damped (2026-10-18).
+- Writes per day on changeable days were 12–24 (2026-10-15 … 17); damped on 2026-10-18 (decision 0007, revision). Watch the next changeable days.
 
 ## 11. Statistics (added 2026-10-05)
 

@@ -115,10 +115,20 @@ class TimeOfUseTable:
     def protects_more_than(self, other: TimeOfUseTable) -> bool:
         """True when this table keeps more in the battery than ``other`` somewhere:
         a higher slot SOC, grid charge switched on, or grid charging starting earlier."""
-        for mine, theirs in zip(self.slots, other.slots, strict=True):
-            if mine.soc > theirs.soc:
-                return True
-            if mine.grid_charge and (not theirs.grid_charge or mine.start < theirs.start):
+        return any(
+            _keeps_more(mine, theirs) for mine, theirs in zip(self.slots, other.slots, strict=True)
+        )
+
+    def protects_more_soon(self, other: TimeOfUseTable, now: time, within_minutes: int) -> bool:
+        """Like :meth:`protects_more_than`, counting only slots that are running at ``now`` (in
+        either table) or start within ``within_minutes`` of it."""
+        minute = now.hour * 60 + now.minute
+        running = {self.index_at(now), other.index_at(now)}
+        for index, (mine, theirs) in enumerate(zip(self.slots, other.slots, strict=True)):
+            if not _keeps_more(mine, theirs):
+                continue
+            starts_in = (min(mine.start_minute, theirs.start_minute) - minute) % MINUTES_PER_DAY
+            if index in running or starts_in <= within_minutes:
                 return True
         return False
 
@@ -191,3 +201,10 @@ def _slot_changes(old: TimeOfUseSlot, new: TimeOfUseSlot) -> list[str]:
         ),
     ]
     return [text for changed, text in changes if changed]
+
+
+def _keeps_more(mine: TimeOfUseSlot, theirs: TimeOfUseSlot) -> bool:
+    """``mine`` keeps more in the battery: higher SOC, grid charge on, or grid charging earlier."""
+    if mine.soc > theirs.soc:
+        return True
+    return mine.grid_charge and (not theirs.grid_charge or mine.start < theirs.start)

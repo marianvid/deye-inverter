@@ -57,7 +57,10 @@ At each check, for each protected moment:
 - **The moment is still ahead** (for example 10:00, for 16:00): the planner
   projects the SOC at the moment with normal use (house load from history, the
   forecast sun corrected by today's actual ÷ forecast so far).
-  - Projection ≥ reserve: the slot gets the reserve, **no grid charge**.
+  - Projection ≥ reserve, or short by at most 3 points [grid start margin]: the
+    slot gets the reserve, **no grid charge**. Once grid charging is planned it
+    stays until the projection reaches the reserve, so it does not flip on and
+    off around it.
   - Projection < reserve: it computes how long the grid needs (deficit ÷ 3.1 kW
     × 1.2 margin) and **moves the slot's start** to that latest time (5-minute
     steps), with grid charge on. Until then the previous slot applies, so nothing
@@ -66,10 +69,13 @@ At each check, for each protected moment:
     does better.
 - **The moment's slot is running** (for example 23:00, inside 21:00–01:00): the
   slot keeps the reserve computed for its moment; grid charge only if the battery
-  is already below it.
+  is 3 points [grid start margin] below it, and then until it is back at the
+  reserve.
 
-Fewer writes: a planned start moves only by more than 15 minutes, and a reserve
-is rewritten only when it changes by more than 3 points. Most checks therefore
+Fewer writes: a planned start moves only by more than 15 minutes plus 10 minutes
+for every hour until that start [start tolerance, per hour ahead] — a start six
+hours ahead moves only by more than 75 minutes, one an hour ahead by more than
+25 — and a reserve is rewritten only when it changes by more than 3 points. Most checks therefore
 end in "no change". After a write the table is read back up to 4 times, 15 s
 apart, because DeyeCloud shows a new table only after a while.
 
@@ -77,9 +83,11 @@ Write limits, a safety net against a planner fault (neither the inverter nor
 DeyeCloud imposes one):
 
 - A table that **keeps more in the battery** (a higher slot SOC, grid charge
-  switched on, or grid charging starting earlier) is sent at once.
-- A table that **lowers the protection** or moves a grid start later waits until
-  30 minutes [minutes between writes] after the previous write.
+  switched on, or grid charging starting earlier) in a slot that is running or
+  starts within 60 minutes [urgent within] is sent at once.
+- Any other table (lowering the protection, a later grid start, or a change in a
+  slot further ahead) waits until 30 minutes [minutes between writes] after the
+  previous write.
 - At most **24 tables** a day [writes per day]; tables that keep more in the
   battery may go on up to **48** [writes per day when raising the protection],
   so a fault cannot block a needed charge. Both limits count the same writes;

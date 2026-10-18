@@ -80,10 +80,14 @@ class JustInTimeCharge:
     the battery cannot get there, and as late as possible (the start of the slot
     holding the deadline is moved). Shared by the reserve and manual charges."""
 
-    def __init__(self, name: str, tuning: TuningSettings) -> None:
+    def __init__(self, name: str, tuning: TuningSettings, start_margin: int = 0) -> None:
+        """``start_margin``: grid charging starts only when the projection falls this many SOC
+        points short; once planned it stays until the target is reached (0 = exact target)."""
         self._name = name
         self._tuning = tuning
+        self._margin = start_margin
         self._tolerance = timedelta(minutes=tuning.start_tolerance_minutes)
+        self._tolerance_per_hour = timedelta(minutes=tuning.start_tolerance_per_hour_minutes)
 
     def plan(self, context: PlannerContext, deadline: datetime, target_soc: int) -> RuleOutcome:
         """Projects the SOC at the deadline from solar and load and, if short of the target, plans
@@ -114,10 +118,13 @@ class JustInTimeCharge:
     ) -> RuleOutcome:
         target = clamp_soc(target_soc, context.site)
         figures: dict[str, float | str] = {**projection, "target_soc": target}
-        deficit_kwh = (target - projection["projected_soc"]) / 100 * context.site.battery_kwh
-        if deficit_kwh <= 0:
+        short_points = target - projection["projected_soc"]
+        deficit_kwh = short_points / 100 * context.site.battery_kwh
+        charging = self._current_start(context, deadline) is not None
+        if deficit_kwh <= 0 or (not charging and short_points <= self._margin):
             overrides = self._slots(context, deadline, deadline, target, grid_charge=False)
-            summary = f"{target}% at {deadline:%H:%M} is reached without the grid."
+            reached = "is reached" if deficit_kwh <= 0 else "is close enough"
+            summary = f"{target}% at {deadline:%H:%M} {reached} without the grid."
             return RuleOutcome(self._name, summary, overrides, figures)
         hours_needed = deficit_kwh / max(context.grid_charge_kw, MIN_CHARGE_KW)
         margin = self._tuning.charge_margin
@@ -141,11 +148,12 @@ class JustInTimeCharge:
         """Start of grid charging: as late as the estimate allows, but steady.
 
         A start already on the inverter is kept while charging is under way, or
-        while the new estimate is within the tolerance (fewer writes). A late
+        while the new estimate is within the tolerance, which grows with the time
+        left until that start (fewer writes). A late
         estimate means "now".
         """
-        tolerance = self._tolerance
         current = self._current_start(context, deadline)
+        tolerance = self._tolerance_for(current, context.now)
         if current is not None and current <= context.now:
             untouched = current.time() == slot_holding(context.base_table, deadline).start
             if not (untouched and planned > context.now + tolerance):
@@ -153,6 +161,13 @@ class JustInTimeCharge:
         elif current is not None and abs(planned - current) <= tolerance:
             return current
         return max(planned, self._round(context.now))
+
+    def _tolerance_for(self, start: datetime | None, now: datetime) -> timedelta:
+        """The base tolerance, widened for every hour the start is still ahead: a start far
+        ahead is re-planned only for a large change (fewer writes)."""
+        if start is None or start <= now:
+            return self._tolerance
+        return self._tolerance + self._tolerance_per_hour * ((start - now) / timedelta(hours=1))
 
     def _round(self, moment: datetime) -> datetime:
         """Starts are rounded down (earlier is the safe side)."""

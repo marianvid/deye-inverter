@@ -94,8 +94,16 @@ class TuningSettings:
     # Grid charging starts this much earlier than the bare estimate (losses, taper).
     charge_margin: float = 1.2
     start_step_minutes: int = 5
-    # A planned grid charging start on the inverter moves only beyond this.
+    # A planned grid charging start on the inverter moves only beyond this...
     start_tolerance_minutes: int = 15
+    # ...plus this much for every hour between now and that start (re-planned less far ahead).
+    start_tolerance_per_hour_minutes: int = 10
+    # A reserve's grid charging starts only when the battery would fall this many points short;
+    # once on, it stays on until the reserve is reached (no on/off flapping around it).
+    grid_start_margin: int = 3
+    # A table that keeps more in the battery bypasses the write limits only when that slot is
+    # running or starts within this many minutes.
+    urgent_within_minutes: int = 60
     # A reserve on the inverter is rewritten only when the new one differs more.
     soc_tolerance: int = 3
     # Today's actual / forecast solar ratio corrects the forecast, within these bounds.

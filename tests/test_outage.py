@@ -134,3 +134,15 @@ def test_merge_keeps_the_start_when_a_move_would_cross_a_neighbour() -> None:
     merged = merge_slot(table, 4, crossing)
     assert merged.slots[4].start == time(17, 0) and merged.slots[4].soc == 90
     assert replace(crossing, start=time(17, 0)) == merged.slots[4]
+
+
+def test_running_slot_grid_charge_has_a_margin() -> None:
+    reserve = int(rule().evaluate(context(at(23, 30), soc=80)).figures["reserve 21:00"])
+    # One point below the reserve: not yet (margin 3), so no on/off flapping around it.
+    near = rule().evaluate(context(at(23, 30), soc=reserve - 1))
+    assert near.overrides[5].grid_charge is False
+    # Already charging: it stays on until the reserve is reached.
+    base = winter_table(grid_charge=False)
+    charging = base.replace_slots({5: base.slots[5].with_changes(grid_charge=True)})
+    kept = rule().evaluate(context(at(23, 30), soc=reserve - 1, current=charging))
+    assert kept.overrides[5].grid_charge is True

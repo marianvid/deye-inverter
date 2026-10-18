@@ -45,7 +45,7 @@ class ReserveRule(PlannerRule):
     def __init__(self, settings: ReserveSettings, tuning: TuningSettings) -> None:
         self._settings = settings
         self._tuning = tuning
-        self._charge = JustInTimeCharge(NAME, tuning)
+        self._charge = JustInTimeCharge(NAME, tuning, tuning.grid_start_margin)
 
     def moments(self, table: TimeOfUseTable) -> list[time]:
         """``protect_from`` and every slot start after it, before ``protect_until``."""
@@ -83,10 +83,15 @@ class ReserveRule(PlannerRule):
                 self._prepare(context, moment, when, required, plan)
         return plan.outcome(self.name)
 
-    @staticmethod
-    def _hold(context: PlannerContext, moment: time, required: int, plan: _Plan) -> None:
+    def _hold(self, context: PlannerContext, moment: time, required: int, plan: _Plan) -> None:
+        """The running slot holds the reserve. Grid charge starts when the battery is the
+        margin below it and, once on, stays on until the reserve is reached."""
         index = context.base_table.index_at(moment)
-        short = context.soc < required
+        charging = (
+            context.current_table is not None and context.current_table.slots[index].grid_charge
+        )
+        margin = 0 if charging else self._tuning.grid_start_margin
+        short = context.soc < required - margin
         slot = context.base_table.slots[index].with_changes(soc=required, grid_charge=short)
         plan.add(moment, required, {index: slot})
         if short:

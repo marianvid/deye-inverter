@@ -162,3 +162,14 @@ def test_raising_the_protection_ignores_the_gap_and_the_limit(world: World, prim
     world.gateway.table = winter_table(soc=20, grid_charge=False)
     world.services.refresh_inverter()
     assert world.services.planner.run("check 10:30").status == "limit"
+
+
+def test_a_far_ahead_raise_waits_for_the_gap(world: World, primed: Primed) -> None:
+    lowering_write_pending(world, primed)
+    sent = world.services.planner.preview().desired
+    assert sent is not None
+    # The inverter now holds less only in the 21:00 slot, eleven hours ahead: not urgent.
+    lower = sent.replace_slots({5: sent.slots[5].with_changes(soc=max(20, sent.slots[5].soc - 10))})
+    world.gateway.table = lower
+    world.services.refresh_inverter()
+    assert world.services.planner.run("check 10:15").status == "wait"

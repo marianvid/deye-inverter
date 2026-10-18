@@ -94,7 +94,8 @@ def test_late_estimate_starts_now() -> None:
 def test_planned_start_is_kept_within_tolerance_and_once_charging() -> None:
     kept = plan(context(at(10), soc=70, current=charging_from(3, 14, 45)))
     assert kept.overrides[3].start == time(14, 45)
-    moved = plan(context(at(10), soc=70, current=charging_from(3, 14, 20)))
+    fixed = replace(TUNING, start_tolerance_per_hour_minutes=0)
+    moved = plan(context(at(10), soc=70, current=charging_from(3, 14, 20)), tuning=fixed)
     assert moved.overrides[3].start == time(14, 55)
     running = plan(context(at(15), soc=68, current=charging_from(3, 14, 50)))
     assert running.overrides[3].start == time(14, 50)
@@ -183,3 +184,33 @@ def test_describe_changes() -> None:
         "13:00: starts 14:45",
     ]
     assert before.describe_changes(before) == []
+
+
+def test_start_tolerance_widens_with_the_time_left() -> None:
+    # Planned 14:55; on the inverter 14:20. At 10:00 (4.3 h ahead: 15 + 43 min) it is kept;
+    # at 13:30 (50 min ahead: 15 + 8 min) it moves.
+    far = plan(context(at(10), soc=70, current=charging_from(3, 14, 20)))
+    assert far.overrides[3].start == time(14, 20)
+    near = plan(context(at(13, 30), soc=60, load_kw=0.1, current=charging_from(3, 14, 20)))
+    assert near.overrides[3].start > time(14, 20)
+
+
+def test_grid_start_margin_avoids_flapping() -> None:
+    charge = JustInTimeCharge("test", TUNING, start_margin=3)
+    # 76 % now, flat 0.6 kW load for an hour: about 72 % at 11:00, 2 points short of 74 %.
+    small = charge.plan(context(at(10), soc=76), at(11), 74)
+    assert not any(slot.grid_charge for slot in small.overrides.values())
+    assert "close enough" in small.summary
+    # Already charging for that deadline: it stays on until the target is reached.
+    current = charging_from(2, 10, 30)
+    kept = charge.plan(context(at(10), soc=76, current=current), at(11), 74)
+    assert any(slot.grid_charge for slot in kept.overrides.values())
+
+
+def test_protects_more_soon() -> None:
+    base = winter_table(grid_charge=False)
+    later = base.replace_slots({3: base.slots[3].with_changes(soc=90)})  # 13:00 slot
+    assert later.protects_more_than(base)
+    assert not later.protects_more_soon(base, time(9, 0), 60)
+    assert later.protects_more_soon(base, time(12, 30), 60)
+    assert later.protects_more_soon(base, time(14, 0), 60)  # running

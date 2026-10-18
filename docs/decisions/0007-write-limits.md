@@ -13,3 +13,10 @@ after the previous write; a table that keeps more in the battery is sent at once
 
 **Consequences.** A fault cannot write without bound, and a needed charge is never held
 back by the limit.
+
+**Revision 2026-10-18.** Changeable days still produced 12–24 writes: grid starts hours
+ahead were re-planned at every forecast change, and a running slot's grid charge flipped
+on and off around the reserve. Now: the start tolerance grows with the time left until
+the start (+10 min per hour); grid charging for a reserve starts only 3 points short and
+then stays until the reserve is reached; only a slot running or starting within 60
+minutes counts as urgent. All three are Tuning settings.

@@ -171,7 +171,7 @@ class PlannerService:
             decision.status, decision.message = "dry-run", "Would send the table (dry-run)."
             return
         manual = self._manual_charge() is not None or decision.trigger.startswith("manual charge")
-        urgent = self._protects_more(decision.desired)
+        urgent = self._protects_more(decision.desired, decision.at, settings)
         if not manual:
             held = self._held_back(settings, decision.at, urgent)
             if held is not None:
@@ -182,9 +182,15 @@ class PlannerService:
         if urgent and not manual:
             decision.message += " (protection raised: sent regardless of the write limits)"
 
-    def _protects_more(self, desired: TimeOfUseTable) -> bool:
+    def _protects_more(
+        self, desired: TimeOfUseTable, now: datetime, settings: PlannerSettings
+    ) -> bool:
+        """The table keeps more in the battery in a slot that runs now or starts soon."""
         current = self._state.current_table()
-        return current is None or desired.protects_more_than(current)
+        if current is None:
+            return True
+        within = settings.tuning.urgent_within_minutes
+        return desired.protects_more_soon(current, now.time(), within)
 
     def _held_back(
         self, settings: PlannerSettings, now: datetime, urgent: bool
