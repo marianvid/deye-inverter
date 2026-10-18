@@ -107,19 +107,7 @@ class TimeOfUseTable:
         """
         lines = []
         for old, new in zip(before.slots, self.slots, strict=True):
-            parts = []
-            if new.start != old.start:
-                parts.append(f"starts {new.start:%H:%M}")
-            if new.soc != old.soc:
-                parts.append(f"SOC {old.soc}% → {new.soc}%")
-            if new.grid_charge != old.grid_charge:
-                parts.append(f"grid charge {'on' if new.grid_charge else 'off'}")
-            if new.power != old.power:
-                parts.append(f"power {old.power} → {new.power} W")
-            if new.voltage != old.voltage:
-                parts.append(f"voltage {old.voltage:g} → {new.voltage:g} V")
-            if new.generator_charge != old.generator_charge:
-                parts.append(f"generator charge {'on' if new.generator_charge else 'off'}")
+            parts = _slot_changes(old, new)
             if parts:
                 lines.append(f"{old.start:%H:%M}: {', '.join(parts)}")
         return lines
@@ -183,3 +171,23 @@ def table_from_dicts(items: Iterable[dict[str, Any]]) -> TimeOfUseTable:
         )
         for item in items
     )
+
+
+def _switch(on: bool) -> str:
+    return "on" if on else "off"
+
+
+def _slot_changes(old: TimeOfUseSlot, new: TimeOfUseSlot) -> list[str]:
+    """What differs between two versions of one slot, in words."""
+    changes = [
+        (new.start != old.start, f"starts {new.start:%H:%M}"),
+        (new.soc != old.soc, f"SOC {old.soc}% → {new.soc}%"),
+        (new.grid_charge != old.grid_charge, f"grid charge {_switch(new.grid_charge)}"),
+        (new.power != old.power, f"power {old.power} → {new.power} W"),
+        (new.voltage != old.voltage, f"voltage {old.voltage:g} → {new.voltage:g} V"),
+        (
+            new.generator_charge != old.generator_charge,
+            f"generator charge {_switch(new.generator_charge)}",
+        ),
+    ]
+    return [text for changed, text in changes if changed]

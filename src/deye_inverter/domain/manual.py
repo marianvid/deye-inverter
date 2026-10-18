@@ -20,6 +20,7 @@ from deye_inverter.domain.time_of_use import TimeOfUseSlot
 
 NAME = "manual"
 DEFAULT_MAX_HOURS = 48
+FULL_SOC = 100  # a battery is never charged past 100 %
 
 
 class ManualChargeError(ValueError):
@@ -46,7 +47,7 @@ class ManualCharge:
         return self.created_at + timedelta(hours=self.max_hours)
 
     def __post_init__(self) -> None:
-        if not 1 <= self.target_soc <= 100:
+        if not 1 <= self.target_soc <= FULL_SOC:
             raise ManualChargeError("The target must be between 1 and 100 %")
         if self.ready_at is not None and self.ready_at <= self.created_at:
             raise ManualChargeError("The ready time must be in the future")

@@ -25,9 +25,7 @@ TUNING = TuningSettings()
 def context(
     now: datetime,
     soc: float = 60.0,
-    forecast: Forecast | None = None,
     load_kw: float = 0.6,
-    ratio: float = 1.0,
     current: TimeOfUseTable | None = None,
     floor: int = 20,
 ) -> PlannerContext:
@@ -35,8 +33,8 @@ def context(
         now=now,
         soc=soc,
         base_table=winter_table(),
-        forecast=forecast if forecast is not None else Forecast(()),
-        solar_ratio=ratio,
+        forecast=Forecast(()),
+        solar_ratio=1.0,
         load=LoadProfile.flat(load_kw),
         grid_charge_kw=5.0,
         site=SiteSettings(),
@@ -65,7 +63,7 @@ def plan(
 
 
 def test_enough_sun_keeps_the_target_without_grid() -> None:
-    outcome = plan(context(at(10), forecast=flat_forecast(at(10), 6, 2.0)))
+    outcome = plan(replace(context(at(10)), forecast=flat_forecast(at(10), 6, 2.0)))
     assert list(outcome.overrides) == [3]
     slot = outcome.overrides[3]
     assert (slot.start, slot.soc, slot.grid_charge) == (time(13, 0), 75, False)

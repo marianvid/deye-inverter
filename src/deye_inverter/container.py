@@ -39,7 +39,10 @@ from deye_inverter.application.planner_service import PlannerDependencies, Plann
 from deye_inverter.application.profiles import ProfileService
 from deye_inverter.application.scheduler import JobChain, JobScheduler
 from deye_inverter.application.statistics import StatisticsViews
-from deye_inverter.application.time_of_use_service import TimeOfUseService
+from deye_inverter.application.time_of_use_service import (
+    TimeOfUseDependencies,
+    TimeOfUseService,
+)
 from deye_inverter.application.views import DashboardViews
 from deye_inverter.config import AppConfig, CredentialsReader, IntervalsConfig
 from deye_inverter.domain.settings import PlannerSettings, SettingsCodec, SiteSettings
@@ -128,7 +131,9 @@ def build_services(database: Database, outside: Outside) -> Services:
     db = Storage.open(database, outside)
     clock = outside.clock
     commands = TimeOfUseService(
-        outside.gateway, db.state, db.journal, clock, db.settings, outside.sleep
+        TimeOfUseDependencies(
+            outside.gateway, db.state, db.journal, clock, db.settings, outside.sleep
+        )
     )
     refresh_forecast = RefreshForecast(outside.forecast, db.forecasts, db.settings, clock)
     charging = ChargeSettingsService(outside.gateway, db.state, db.journal, clock)

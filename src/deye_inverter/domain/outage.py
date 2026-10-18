@@ -19,6 +19,8 @@ STEP = timedelta(hours=1)
 LONGEST_OUTAGE = timedelta(hours=36)
 # Below this the forecast hour counts as dark (night).
 DARK_KWH = 0.01
+# An outage that starts before this hour has already begun in the night.
+NOON = 12
 
 
 def _minutes(moment: time) -> int:
@@ -78,7 +80,7 @@ class OutageSimulation:
 
     def _survives(self, start: datetime, soc: float) -> bool:
         end = start + self._longest()
-        night_passed = start.hour < 12  # an outage after midnight is already in the night
+        night_passed = start.hour < NOON  # an outage after midnight is already in the night
         moment = start
         while moment < end:
             forecast = self.forecast.energy_between(moment, moment + STEP)

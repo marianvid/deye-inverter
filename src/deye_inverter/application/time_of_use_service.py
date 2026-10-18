@@ -43,25 +43,29 @@ class CommandOutcome:
         }
 
 
+@dataclass(frozen=True)
+class TimeOfUseDependencies:
+    """Parameter object for :class:`TimeOfUseService`."""
+
+    gateway: InverterGateway
+    state: InverterState
+    journal: JournalRepository
+    clock: Clock
+    settings: SettingsRepository
+    sleep: Callable[[float], None] = time.sleep
+
+
 class TimeOfUseService:
     """Writes a time-of-use table to the inverter, reads it back to verify and journals the
     command."""
 
-    def __init__(
-        self,
-        gateway: InverterGateway,
-        state: InverterState,
-        journal: JournalRepository,
-        clock: Clock,
-        settings: SettingsRepository,
-        sleep: Callable[[float], None] = time.sleep,
-    ) -> None:
-        self._sleep = sleep
-        self._settings = settings
-        self._gateway = gateway
-        self._state = state
-        self._journal = journal
-        self._clock = clock
+    def __init__(self, deps: TimeOfUseDependencies) -> None:
+        self._sleep = deps.sleep
+        self._settings = deps.settings
+        self._gateway = deps.gateway
+        self._state = deps.state
+        self._journal = deps.journal
+        self._clock = deps.clock
 
     def send(self, table: TimeOfUseTable, reason: str) -> CommandOutcome:
         """Writes the table to the inverter, verifies it by reading back and journals the command
