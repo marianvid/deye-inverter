@@ -86,11 +86,11 @@ on 2026-10-07). Summary:
 |---|---|
 | First run | Set the password |
 | Now | Live values: solar power, house load, backup-output load, battery SOC / power / voltage, grid power, inverter state, age of the data |
-| History | Charts per day / week / month from the local database; daily energy totals |
+| Statistics | Day / Week / Month / Year / Lifetime: totals (consumed, from solar, from grid, solar produced, battery in/out, self-sufficiency) and charts (section 11) |
 | Forecast | Solar forecast for today and the next days; forecast vs actual production; the correction ratio |
-| Plan | What the planner decided at each check and why (projected SOC, energy figures), what it will do next; mode Off / Dry-run / Live |
+| Plan | Mode Off / Dry-run / Live; writes left today; battery, grid charge switch (toggle) and manual charge; current inverter table, last change (what and why), next check and "Run a check now"; what the planner would do now; recent decisions |
 | Time of Use | The current table read from the inverter; edit and send manually; result of the order |
-| Settings | reserve rule parameters, days and exception dates, location and panel data, polling intervals, password |
+| Settings | General (write limits), outage reserve, battery floor, site and battery, tuning (every value behind a decision) |
 | Log | Every command sent, its order status and read-back result; errors |
 
 Files: one HTML template per screen, CSS and JavaScript in separate files, no
@@ -114,25 +114,14 @@ inline scripts or styles.
 
 ## 7. Architecture
 
-Layers, dependencies pointing inwards:
+Ports and adapters, dependencies pointing inwards (domain ← application ← web;
+adapters behind ports). The layers, data flow, storage and configuration are
+described in [`architecture.md`](architecture.md); each important decision has a
+record in [`decisions/`](decisions/).
 
-- **Domain** — entities and rules, no I/O: `TimeOfUseTable`, `TimeOfUseSlot`,
-  `Reading`, `Forecast`, `PlannerRule` (Strategy: `ReserveByTimeRule`,
-  `OvernightFloorRule`), `Decision`.
-- **Application** — use cases: `CollectReadings`, `RefreshForecast`,
-  `RunPlanner`, `ApplyTimeOfUse` (Command: send → wait for order → read back
-  → log), `EditTimeOfUse`.
-- **Ports** (interfaces): `InverterGateway` (read live values, read/write
-  Time of Use, read battery settings), `ForecastProvider`, repositories,
-  `Clock`.
-- **Adapters**: `DeyeCloudGateway` (token refresh, order polling),
-  `OpenMeteoForecast`, SQLite repositories, web controllers.
-- **Composition root** wires everything from configuration; a scheduler runs
-  the jobs.
-
-Stack: Python 3.13, FastAPI + Uvicorn, httpx, Pydantic, SQLite, APScheduler;
-front end in plain HTML/CSS/JavaScript modules with Chart.js served locally
-(no CDN). Tests: pytest (coverage ≥ 80 %), ruff, mypy.
+Stack: Python 3.13, FastAPI + Uvicorn, httpx, SQLite, APScheduler; front end in
+plain HTML/CSS/JavaScript modules with Chart.js served locally (no CDN). Tests:
+pytest (branch coverage ≥ 80 %), ruff, mypy strict, the reviewer's gate.
 
 ## 8. Configuration and deployment
 
@@ -156,7 +145,7 @@ front end in plain HTML/CSS/JavaScript modules with Chart.js served locally
 
 ## 10. Open points
 
-- None at the moment (2026-10-06).
+- Writes per day on changeable days are still high (12–24 on 2026-10-15 … 17): grid starts far ahead are re-planned often, and a running slot's grid charge flips on/off around the reserve. To be damped (2026-10-18).
 
 ## 11. Statistics (added 2026-10-05)
 

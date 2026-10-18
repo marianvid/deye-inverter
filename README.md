@@ -64,7 +64,8 @@ an outage. See [HOME LAB](https://github.com/marianvid/gem12-dashboard).
 | | |
 |---|---|
 | [How the planner works](docs/planner.md) | The rules in plain words, the outage simulation, just-in-time charging, a day from 09:00, and what the planner never does. |
-| [Specification](docs/specification.md) | What the application does, the facts it relies on, every default, the architecture. |
+| [Specification](docs/specification.md) | What the application does, the facts it relies on, every default. |
+| [Architecture](docs/architecture.md) | Layers, data flow, storage and configuration; the decisions behind them in [docs/decisions](docs/decisions/). |
 | [Calibration](docs/calibration.md) | Comparing the forecast with actual production, and the panel settings derived from it. |
 | [Deploy](docs/deploy.md) | Installing it as a systemd service on a Debian host. |
 | [AGENTS.md](AGENTS.md) | The rules an AI agent working in this repository follows. |

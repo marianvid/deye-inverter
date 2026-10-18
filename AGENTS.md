@@ -8,9 +8,10 @@ A web application (served from a home-lab container) that:
 - collects inverter, battery and grid data from DeyeCloud and stores it locally;
 - shows real-time values, history, weather forecast and forecast-vs-actual;
 - edits the inverter's Time of Use table on request;
-- runs a planner that keeps the battery at a target state of charge before a
-  given time on weekdays, charging from the grid only when the forecast says
-  the sun will not do it.
+- runs a planner that uses as much solar energy as possible, buys as little as
+  possible from the grid, and keeps enough in the battery for a grid outage
+  (`docs/planner.md`); grid charging only when the forecast says the sun will
+  not do it, and as late as possible.
 
 ## Rules
 
@@ -27,5 +28,7 @@ A web application (served from a home-lab container) that:
    `deye-inverter-opts`), read by one configuration module. The public
    repository ships `config.example.*` with placeholders only.
 6. Code: clean code, SOLID, object-oriented design, design patterns where they
-   earn their place. HTML, CSS and JavaScript in separate files.
+   earn their place. HTML, CSS and JavaScript in separate files. Design before
+   code: update `docs/architecture.md` and add a record in `docs/decisions/`
+   for every important decision. The reviewer's gate passes before every commit.
 7. User interface language: English.
