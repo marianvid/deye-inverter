@@ -34,8 +34,8 @@ class InverterState:
         return str(stored["read_at"]) if stored else None
 
     def remember_current_table(self, table: TimeOfUseTable, read_at: datetime) -> None:
-        """Stores the table read from the inverter; the first one read also becomes the base table.
-        """
+        """Stores the table read from the inverter; the first one read also becomes the base
+        table."""
         self._save(CURRENT_TABLE, {"read_at": read_at.isoformat(), "slots": table_to_dicts(table)})
         if self.base_table() is None:
             self.save_base_table(table, read_at)

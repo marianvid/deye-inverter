@@ -1,7 +1,8 @@
 """Machine configuration: the one module that reads the configuration file.
 
 Values come from a TOML file (path in ``DEYE_INVERTER_CONFIG``) and may be
-overridden by environment variables named ``DEYE_INVERTER_<SECTION>_<KEY>``.
+overridden by environment variables named ``DEYE_INVERTER_<SECTION>_<KEY>``. Defaults live in
+``defaults.toml`` beside this module, not in the code.
 """
 
 from __future__ import annotations
@@ -10,16 +11,13 @@ import os
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
 ENV_PREFIX = "DEYE_INVERTER_"
 CONFIG_ENV = f"{ENV_PREFIX}CONFIG"
-DEFAULT_BASE_URL = "https://eu1-developer.deyecloud.com/v1.0"
-# Without a configured host the web UI listens on this machine only.
-DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 8080
-DEFAULT_TIMEZONE = "Europe/Bucharest"
+DEFAULTS_FILE = "defaults.toml"
 
 
 class ConfigError(Exception):
@@ -61,6 +59,13 @@ class SiteConfig:
 
 
 @dataclass(frozen=True)
+class ForecastConfig:
+    """Where the weather forecast is asked (the Open-Meteo forecast endpoint)."""
+
+    url: str
+
+
+@dataclass(frozen=True)
 class IntervalsConfig:
     """How often the background jobs run, in minutes."""
 
@@ -73,12 +78,13 @@ class IntervalsConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
-    """The whole machine configuration: DeyeCloud, storage, web, site and job intervals."""
+    """The whole machine configuration: DeyeCloud, storage, web, site, forecast, job intervals."""
 
     deye: DeyeConfig
     storage: StorageConfig
     web: WebConfig
     site: SiteConfig
+    forecast: ForecastConfig
     intervals: IntervalsConfig = IntervalsConfig()
 
 
@@ -97,6 +103,9 @@ class ConfigLoader:
 
     def __init__(self, environ: Mapping[str, str] | None = None) -> None:
         self._environ = os.environ if environ is None else environ
+        self._defaults = tomllib.loads(
+            resources.files("deye_inverter").joinpath(DEFAULTS_FILE).read_text(encoding="utf-8")
+        )
 
     def load(self, path: Path | None = None) -> AppConfig:
         """Reads the TOML file (default: the path in ``DEYE_INVERTER_CONFIG``) and applies
@@ -104,20 +113,21 @@ class ConfigLoader:
         raw = self._read_file(path or self._path_from_env())
         return AppConfig(
             deye=DeyeConfig(
-                base_url=self._value(raw, "deye", "base_url", DEFAULT_BASE_URL),
+                base_url=self._value(raw, "deye", "base_url"),
                 credentials_file=Path(self._required(raw, "deye", "credentials_file")),
                 device_sn=self._value(raw, "deye", "device_sn", ""),
             ),
             storage=StorageConfig(database=Path(self._required(raw, "storage", "database"))),
             web=WebConfig(
-                host=self._value(raw, "web", "host", DEFAULT_HOST),
-                port=int(self._value(raw, "web", "port", str(DEFAULT_PORT))),
+                host=self._value(raw, "web", "host"),
+                port=int(self._value(raw, "web", "port")),
             ),
             site=SiteConfig(
-                timezone=self._value(raw, "site", "timezone", DEFAULT_TIMEZONE),
+                timezone=self._value(raw, "site", "timezone"),
                 latitude=float(self._value(raw, "site", "latitude", "0")),
                 longitude=float(self._value(raw, "site", "longitude", "0")),
             ),
+            forecast=ForecastConfig(url=self._value(raw, "forecast", "url")),
             intervals=self._intervals(raw),
         )
 
@@ -142,10 +152,16 @@ class ConfigLoader:
         with path.open("rb") as handle:
             return tomllib.load(handle)
 
-    def _value(self, raw: dict[str, Any], section: str, key: str, default: str) -> str:
+    def _value(
+        self, raw: dict[str, Any], section: str, key: str, default: str | None = None
+    ) -> str:
+        """The value from the environment, else the machine's file, else ``default``, else
+        ``defaults.toml``."""
         env_name = f"{ENV_PREFIX}{section.upper()}_{key.upper()}"
         if env_name in self._environ:
             return self._environ[env_name]
+        if default is None:
+            default = str(self._defaults.get(section, {}).get(key, ""))
         return str(raw.get(section, {}).get(key, default))
 
     def _required(self, raw: dict[str, Any], section: str, key: str) -> str:

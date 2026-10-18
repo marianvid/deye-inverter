@@ -186,7 +186,7 @@ def build_from_config(config: AppConfig) -> Services:
     client = DeyeCloudClient(config.deye.base_url, credentials)
     outside = Outside(
         gateway=DeyeCloudGateway(client, config.deye.device_sn),
-        forecast=OpenMeteoForecast(config.site.timezone),
+        forecast=OpenMeteoForecast(config.forecast.url, config.site.timezone),
         history=DeyeCloudHistory(client, config.site.timezone),
         clock=clock,
         timezone=config.site.timezone,

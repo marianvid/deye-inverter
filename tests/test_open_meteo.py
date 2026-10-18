@@ -5,6 +5,8 @@ from deye_inverter.adapters.open_meteo import OpenMeteoForecast
 from deye_inverter.domain.settings import SiteSettings
 from deye_inverter.ports import GatewayError
 
+URL = "https://forecast.example/v1/forecast"
+
 
 def test_turns_irradiance_into_energy() -> None:
     seen: dict[str, str] = {}
@@ -22,7 +24,7 @@ def test_turns_irradiance_into_energy() -> None:
         )
 
     provider = OpenMeteoForecast(
-        "Europe/Bucharest", httpx.Client(transport=httpx.MockTransport(handler))
+        URL, "Europe/Bucharest", httpx.Client(transport=httpx.MockTransport(handler))
     )
     forecast = provider.fetch(SiteSettings())
     assert [h.solar_kwh for h in forecast.hours] == pytest.approx([2.46, 4.92])
@@ -32,7 +34,7 @@ def test_turns_irradiance_into_energy() -> None:
 
 def test_http_error() -> None:
     provider = OpenMeteoForecast(
-        "UTC", httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(500)))
+        URL, "UTC", httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(500)))
     )
     with pytest.raises(GatewayError):
         provider.fetch(SiteSettings())

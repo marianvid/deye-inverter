@@ -1,0 +1,16 @@
+# Default machine configuration, shipped with the package. The machine's own file
+# (DEYE_INVERTER_CONFIG) and DEYE_INVERTER_<SECTION>_<KEY> override any value here.
+
+[deye]
+base_url = "https://eu1-developer.deyecloud.com/v1.0"
+
+[web]
+# Without a configured host the web UI listens on this machine only.
+host = "127.0.0.1"
+port = 8080
+
+[site]
+timezone = "Europe/Bucharest"
+
+[forecast]
+url = "https://api.open-meteo.com/v1/forecast"

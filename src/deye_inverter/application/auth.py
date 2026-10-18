@@ -8,8 +8,9 @@ import secrets
 
 from deye_inverter.ports import KeyValueStore
 
-PASSWORD_KEY = "password_hash"
-SECRET_KEY = "session_secret"
+# Where the password hash and the session signing key are kept in the key-value store.
+HASH_ENTRY = "password_hash"
+SESSION_ENTRY = "session_secret"
 MIN_PASSWORD_LENGTH = 8
 SCRYPT = {"n": 2**14, "r": 8, "p": 1}
 
@@ -26,7 +27,7 @@ class PasswordService:
 
     def is_set(self) -> bool:
         """True once a password has been chosen at the first visit."""
-        return self._store.get(PASSWORD_KEY) is not None
+        return self._store.get(HASH_ENTRY) is not None
 
     def set(self, password: str) -> None:
         """Saves the password's salted hash; raises :class:`PasswordError` if it is shorter than 8
@@ -34,11 +35,11 @@ class PasswordService:
         if len(password) < MIN_PASSWORD_LENGTH:
             raise PasswordError(f"The password needs at least {MIN_PASSWORD_LENGTH} characters")
         salt = secrets.token_hex(16)
-        self._store.put(PASSWORD_KEY, f"{salt}${self._hash(password, salt)}")
+        self._store.put(HASH_ENTRY, f"{salt}${self._hash(password, salt)}")
 
     def verify(self, password: str) -> bool:
         """True if the password matches the stored hash; False when none is set."""
-        stored = self._store.get(PASSWORD_KEY)
+        stored = self._store.get(HASH_ENTRY)
         if stored is None:
             return False
         salt, expected = stored.split("$", 1)
@@ -46,10 +47,10 @@ class PasswordService:
 
     def session_secret(self) -> str:
         """The secret that signs session cookies, generated and stored on first use."""
-        secret = self._store.get(SECRET_KEY)
+        secret = self._store.get(SESSION_ENTRY)
         if secret is None:
             secret = secrets.token_urlsafe(32)
-            self._store.put(SECRET_KEY, secret)
+            self._store.put(SESSION_ENTRY, secret)
         return secret
 
     @staticmethod

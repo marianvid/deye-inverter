@@ -14,8 +14,8 @@ from deye_inverter.ports import (
 
 
 class CollectReadings:
-    """Job that stores one live reading (power flows, battery SOC, day counters) from the inverter.
-    """
+    """Job that stores one live reading (power flows, battery SOC, day counters) from the
+    inverter."""
 
     def __init__(self, gateway: InverterGateway, readings: ReadingRepository) -> None:
         self._gateway = gateway

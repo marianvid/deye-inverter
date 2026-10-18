@@ -35,8 +35,8 @@ class DeyeCloudHistory(EnergyHistorySource):
         return self._station_id
 
     def first_day(self) -> date:
-        """The day the station started operating, as DeyeCloud reports it (asked once, then cached).
-        """
+        """The day the station started operating, as DeyeCloud reports it (asked once, then
+        cached)."""
         if self._first_day is None:
             self._first_day = self._operating_since()
         return self._first_day
@@ -53,8 +53,8 @@ class DeyeCloudHistory(EnergyHistorySource):
         return records
 
     def frames(self, day: date) -> list[Reading]:
-        """The day's 5-minute power frames (solar, load, grid, battery power and SOC) as readings.
-        """
+        """The day's 5-minute power frames (solar, load, grid, battery power and SOC) as
+        readings."""
         items = self._history(
             GRANULARITY_FRAME, day.isoformat(), (day + timedelta(days=1)).isoformat()
         )

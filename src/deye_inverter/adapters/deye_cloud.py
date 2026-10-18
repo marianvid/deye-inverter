@@ -77,7 +77,7 @@ class DeyeCloudClient:
 
     @staticmethod
     def _checked(response: httpx.Response, path: str) -> dict[str, Any]:
-        if response.status_code >= 400:
+        if response.is_error:
             raise GatewayError(f"DeyeCloud {path}: HTTP {response.status_code}")
         data: dict[str, Any] = response.json()
         if str(data.get("code")) not in SUCCESS_CODES:

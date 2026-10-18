@@ -30,7 +30,7 @@ deye-inverter = "deye_inverter.__main__:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-deye_inverter = ["web/templates/*.html", "web/static/css/*.css", "web/static/js/*.js", "web/static/vendor/*.js"]
+deye_inverter = ["defaults.toml", "web/templates/*.html", "web/static/css/*.css", "web/static/js/*.js", "web/static/vendor/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -9,8 +9,8 @@ from typing import Any
 
 
 class Mode(StrEnum):
-    """Automation mode: off, dry-run (decide but do not send) or live (send tables to the inverter).
-    """
+    """Automation mode: off, dry-run (decide but do not send) or live (send tables to the
+    inverter)."""
 
     OFF = "off"
     DRY_RUN = "dry-run"

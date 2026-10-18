@@ -57,8 +57,8 @@ class DashboardViews:
         }
 
     def day_series(self, day: date) -> dict[str, Any]:
-        """The day's readings as time series of solar, load, grid and battery power and battery SOC.
-        """
+        """The day's readings as time series of solar, load, grid and battery power and battery
+        SOC."""
         start = self._midnight(day)
         readings = self._readings.between(start, start + timedelta(days=1))
         return {

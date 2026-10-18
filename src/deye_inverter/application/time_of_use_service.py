@@ -44,8 +44,8 @@ class CommandOutcome:
 
 
 class TimeOfUseService:
-    """Writes a time-of-use table to the inverter, reads it back to verify and journals the command.
-    """
+    """Writes a time-of-use table to the inverter, reads it back to verify and journals the
+    command."""
 
     def __init__(
         self,

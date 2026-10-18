@@ -12,14 +12,16 @@ from deye_inverter.domain.forecast import Forecast, ForecastHour
 from deye_inverter.domain.settings import SiteSettings
 from deye_inverter.ports import ForecastProvider, GatewayError
 
-FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 STANDARD_IRRADIANCE = 1000.0  # W/m² at which panels deliver their rated kWp
 
 
 class OpenMeteoForecast(ForecastProvider):
     """Hourly ``global_tilted_irradiance`` (mean over the preceding hour)."""
 
-    def __init__(self, timezone: str, http: httpx.Client | None = None, days: int = 3) -> None:
+    def __init__(
+        self, url: str, timezone: str, http: httpx.Client | None = None, days: int = 3
+    ) -> None:
+        self._url = url
         self._zone = ZoneInfo(timezone)
         self._timezone = timezone
         self._http = http or httpx.Client(timeout=30)
@@ -28,8 +30,8 @@ class OpenMeteoForecast(ForecastProvider):
     def fetch(self, site: SiteSettings) -> Forecast:
         """Downloads the hourly irradiance for the site's panel tilt and azimuth and returns it as a
         solar forecast in kWh."""
-        response = self._http.get(FORECAST_URL, params=self._params(site))
-        if response.status_code >= 400:
+        response = self._http.get(self._url, params=self._params(site))
+        if response.is_error:
             raise GatewayError(f"Open-Meteo: HTTP {response.status_code}")
         return self._parse(response.json(), site)
 

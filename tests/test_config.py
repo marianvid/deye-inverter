@@ -62,3 +62,14 @@ def test_site_location_and_intervals_come_from_the_configuration(tmp_path: Path)
     assert (config.site.latitude, config.site.longitude) == (1.5, -2.25)
     assert config.intervals.readings_minutes == 7
     assert config.web.host == "127.0.0.1"
+
+
+def test_defaults_come_from_the_packaged_defaults_file(tmp_path: Path) -> None:
+    path = tmp_path / "config.toml"
+    path.write_text('[deye]\ncredentials_file = "c"\n[storage]\ndatabase = "d"\n', encoding="utf-8")
+    config = ConfigLoader({}).load(path)
+    assert config.deye.base_url.startswith("https://") and config.forecast.url.startswith(
+        "https://"
+    )
+    assert config.web.host == "127.0.0.1" and config.web.port == 8080
+    assert config.site.timezone == "Europe/Bucharest"
