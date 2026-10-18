@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import pytest
 
 from deye_inverter.adapters.sqlite_store import Database
-from deye_inverter.container import Outside, Services, build_services
+from deye_inverter.container import Outside, Services, Storage, build_services
 from tests.fakes import (
     FakeForecastProvider,
     FakeGateway,
@@ -41,6 +41,27 @@ def world() -> World:
     )
     services = build_services(Database(":memory:"), outside)
     return World(services, gateway, clock, provider, history)
+
+
+@dataclass
+class Parts:
+    """The repositories and fakes, for testing one application class without the container."""
+
+    db: Storage
+    gateway: FakeGateway
+    clock: FixedClock
+    provider: FakeForecastProvider
+    history: FakeHistory
+
+
+@pytest.fixture
+def parts() -> Parts:
+    gateway = FakeGateway()
+    clock = FixedClock(at(10))
+    provider = FakeForecastProvider(flat_forecast(at(0), 48, 0.0))
+    history = FakeHistory()
+    outside = Outside(gateway, provider, history, clock, "Europe/Bucharest")
+    return Parts(Storage.open(Database(":memory:"), outside), gateway, clock, provider, history)
 
 
 @pytest.fixture

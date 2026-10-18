@@ -136,8 +136,8 @@ front end in plain HTML/CSS/JavaScript modules with Chart.js served locally
 
 ## 8. Configuration and deployment
 
-- `opts/` (private repository `deye-inverter-opts`): `linux/config.toml`,
-  `macos/config.toml`, credentials. One configuration module reads them;
+- `opts/` (private repository `deye-inverter-opts`): `opts/linux/config.toml`,
+  `opts/macos/config.toml`, credentials. One configuration module reads them;
   environment variables prefixed `DEYE_INVERTER_` override.
 - Public repository: `config.example.toml` with placeholders only;
   `_meta/tools/check-paths.sh` before every push.

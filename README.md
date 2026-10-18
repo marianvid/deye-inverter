@@ -144,7 +144,7 @@ mypy src
 | `src/deye_inverter/web` | FastAPI app, templates, CSS, JavaScript |
 | `deploy/` | systemd unit and install script |
 
-Chart.js 4.5.1 (MIT) is vendored in `web/static/vendor/` so the interface works
+Chart.js 4.5.1 (MIT) is vendored in `src/deye_inverter/web/static/vendor/` so the interface works
 without a CDN.
 
 ## Licence

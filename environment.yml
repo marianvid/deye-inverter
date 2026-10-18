@@ -1,0 +1,12 @@
+# deye-inverter development environment (on the Mac; CT 111 uses a Python virtual environment).
+#   conda env create -f environment.yml      (or: conda env update -f environment.yml)
+#   conda activate deye-inverter
+# The exact versions installed are in environment.lock.yml.
+name: deye-inverter
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+      - -e .[dev]      # the application and its test tools, as listed in pyproject.toml
