@@ -10,5 +10,5 @@ repository < `DEYE_INVERTER_<SECTION>_<KEY>` environment variables. Credentials 
 separate file in `opts/`. Planner values are UI settings stored in the database. No URL,
 path, address or identifier in the code.
 
-**Consequences.** The public code runs anywhere with its own `opts/`; `check-paths.sh`
-guards each push.
+**Consequences.** The public code runs anywhere with its own `opts/`; the home lab's
+path check guards each push.

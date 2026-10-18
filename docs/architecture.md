@@ -63,7 +63,7 @@ Three levels, later wins: the packaged `defaults.toml`, the machine's file
 `DEYE_INVERTER_<SECTION>_<KEY>`. Credentials are a separate file in `opts/`.
 Planner values are not in the config: they are settings edited in the UI
 (Settings page) and stored in the database, with the shipped defaults in
-`domain/settings.py`.
+`src/deye_inverter/domain/settings.py`.
 
 ## Quality gates
 
