@@ -26,6 +26,8 @@ LIFETIME_COUNTERS = {
 
 
 class Period(StrEnum):
+    """The statistics period shown: day, week, month, year or lifetime."""
+
     DAY = "day"
     WEEK = "week"
     MONTH = "month"
@@ -35,6 +37,9 @@ class Period(StrEnum):
 
 @dataclass(frozen=True)
 class Span:
+    """The first and last day of a period, its label, and the anchors of the previous and next
+    periods (None past the data)."""
+
     start: date
     end: date
     label: str
@@ -50,6 +55,7 @@ class SpanCalculator:
         self._first = first_day
 
     def span(self, period: Period, anchor: date) -> Span:
+        """The day, week, month, year or lifetime span that contains the anchor date."""
         builder: dict[Period, Callable[[date], Span]] = {
             Period.DAY: self._day,
             Period.WEEK: self._week,
@@ -96,6 +102,8 @@ class SpanCalculator:
 
 
 class StatisticsViews:
+    """Builds the energy statistics pages from the daily energy records and the stored readings."""
+
     def __init__(
         self, daily: DailyEnergyRepository, readings: ReadingRepository, clock: Clock
     ) -> None:
@@ -104,6 +112,8 @@ class StatisticsViews:
         self._clock = clock
 
     def summary(self, period: Period, anchor: date | None = None) -> dict[str, Any]:
+        """Energy totals and per-bucket totals for the period containing the anchor (default today),
+        with power curves, daily SOC range or lifetime counters."""
         today = self._clock.now().date()
         first = self._daily.first_day() or today
         span = SpanCalculator(today, first).span(period, min(anchor or today, today))
@@ -177,6 +187,8 @@ class StatisticsViews:
 
 
 def grouped(records: Iterable[DailyEnergy], key: Callable[[date], str]) -> list[dict[str, Any]]:
+    """Sums the daily energy balances per label (day, month or year from the key) and returns them
+    sorted by label."""
     groups: dict[str, list[EnergyBalance]] = defaultdict(list)
     for record in records:
         groups[key(record.day)].append(record.balance)

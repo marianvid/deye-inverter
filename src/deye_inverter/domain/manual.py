@@ -23,7 +23,7 @@ DEFAULT_MAX_HOURS = 48
 
 
 class ManualChargeError(ValueError):
-    pass
+    """A manual charge order is invalid (target, times or duration) or cannot be carried out."""
 
 
 @dataclass(frozen=True)
@@ -42,6 +42,7 @@ class ManualCharge:
 
     @property
     def expires_at(self) -> datetime:
+        """When the charge ends regardless of what was asked: creation time plus ``max_hours``."""
         return self.created_at + timedelta(hours=self.max_hours)
 
     def __post_init__(self) -> None:
@@ -63,6 +64,8 @@ class ManualCharge:
         return self.ready_at
 
     def finished(self, now: datetime, soc: float) -> bool:
+        """True once the charge expired, or reached the target SOC and its hold time (charge now),
+        or passed its release time."""
         if now >= self.expires_at:
             return True
         if self.ready_at is None:
@@ -72,6 +75,7 @@ class ManualCharge:
         return release is not None and now >= release
 
     def as_dict(self) -> dict[str, Any]:
+        """The charge as a JSON-ready dict with ISO times, as stored and shown."""
         return {
             "target_soc": self.target_soc,
             "created_at": self.created_at.isoformat(),
@@ -83,6 +87,9 @@ class ManualCharge:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ManualCharge:
+        """Rebuilds a stored charge from its dict; raises :class:`ManualChargeError` if it has no
+        creation time."""
+
         def moment(key: str) -> datetime | None:
             value = data.get(key)
             return datetime.fromisoformat(value) if value else None
@@ -110,6 +117,8 @@ class ManualChargeRule(PlannerRule):
         self._planner = JustInTimeCharge(NAME, tuning)
 
     def evaluate(self, context: PlannerContext) -> RuleOutcome:
+        """Slots that charge the battery to the target SOC now or just in time for the ready time,
+        then hold it until the hold time."""
         charge = self._charge
         if charge is None:
             return RuleOutcome(self.name, "No manual charge.")

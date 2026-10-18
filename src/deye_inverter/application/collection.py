@@ -14,6 +14,9 @@ from deye_inverter.ports import (
 
 
 class CollectReadings:
+    """Job that stores one live reading (power flows, battery SOC, day counters) from the inverter.
+    """
+
     def __init__(self, gateway: InverterGateway, readings: ReadingRepository) -> None:
         self._gateway = gateway
         self._readings = readings
@@ -23,6 +26,9 @@ class CollectReadings:
 
 
 class RefreshInverterSettings:
+    """Job that reads the time-of-use table, battery settings and charge settings from the inverter
+    and remembers them."""
+
     def __init__(self, gateway: InverterGateway, state: InverterState, clock: Clock) -> None:
         self._gateway = gateway
         self._state = state
@@ -36,6 +42,8 @@ class RefreshInverterSettings:
 
 
 class RefreshForecast:
+    """Job that fetches the solar forecast for the configured site and stores it."""
+
     def __init__(
         self,
         provider: ForecastProvider,

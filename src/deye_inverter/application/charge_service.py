@@ -10,6 +10,8 @@ SETTING = "setting"
 
 
 class ChargeSettingsService:
+    """Switches grid charging on the inverter, reads the setting back and logs the command."""
+
     def __init__(
         self,
         gateway: InverterGateway,
@@ -23,6 +25,8 @@ class ChargeSettingsService:
         self._clock = clock
 
     def set_grid_charge(self, enabled: bool) -> CommandOutcome:
+        """Turns grid charging on or off, verifies it by reading the charge settings back and
+        journals the outcome."""
         started = self._clock.now()
         try:
             outcome = self._apply(enabled)

@@ -25,6 +25,8 @@ class EnergyBalance:
 
     @property
     def from_solar(self) -> float:
+        """kWh the house used that did not come from the grid (consumption minus bought, never
+        negative)."""
         return max(0.0, self.consumption - self.bought)
 
     @property
@@ -44,6 +46,8 @@ class EnergyBalance:
         )
 
     def as_dict(self) -> dict[str, Any]:
+        """The energies rounded to 0.01 kWh, with from-solar, from-grid and self-sufficiency
+        percent, as a JSON-ready dict."""
         sufficiency = self.self_sufficiency
         return {
             "solar": round(self.solar, 2),
@@ -58,12 +62,15 @@ class EnergyBalance:
 
 @dataclass(frozen=True)
 class DailyEnergy:
+    """One day's energy balance and where it came from (cloud history or local readings)."""
+
     day: date
     balance: EnergyBalance
     source: str
 
 
 def total(balances: Iterable[EnergyBalance]) -> EnergyBalance:
+    """The sum of the energy balances; an all-zero balance when there are none."""
     result = EnergyBalance()
     for balance in balances:
         result = result + balance

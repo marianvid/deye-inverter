@@ -9,7 +9,11 @@ from starlette.responses import Response
 
 
 class RevalidatedStaticFiles(StaticFiles):  # type: ignore[misc,unused-ignore]
+    """Serves the web interface's static files so the browser rechecks them before each use."""
+
     def file_response(self, *args: Any, **kwargs: Any) -> Response:
+        """The file response with ``Cache-Control: no-cache``, so the browser revalidates its cached
+        copy."""
         response = super().file_response(*args, **kwargs)
         # Cached copies are kept but checked (ETag / Last-Modified) before each use.
         response.headers["Cache-Control"] = "no-cache"

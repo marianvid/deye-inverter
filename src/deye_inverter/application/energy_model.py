@@ -12,6 +12,9 @@ from deye_inverter.ports import ReadingRepository
 
 
 class EnergyModel:
+    """Derives the solar ratio, hourly house load and grid charging power the planner uses from
+    stored readings."""
+
     def __init__(self, readings: ReadingRepository) -> None:
         self._readings = readings
 
@@ -64,6 +67,8 @@ class EnergyModel:
 
 
 def today_solar(latest: Reading | None, now: datetime) -> float:
+    """Solar kWh produced so far today according to the latest reading; 0.0 if that reading is from
+    another day."""
     if latest is None or latest.taken_at.astimezone(now.tzinfo).date() != now.date():
         return 0.0
     return latest.solar_today

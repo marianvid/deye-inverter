@@ -39,6 +39,8 @@ class OutageLoad:
     profile: LoadProfile
 
     def kw(self, moment: datetime) -> float:
+        """The essential load in kW at that clock time: evening, late evening and morning values,
+        else the night load with margin, capped."""
         s = self.settings
         if _within(moment, s.protect_from, s.evening_until):
             return s.evening_kw
@@ -51,6 +53,9 @@ class OutageLoad:
 
 @dataclass(frozen=True)
 class OutageSimulation:
+    """Hour-by-hour battery SOC during a simulated grid outage, on the essential load and the
+    trusted part of the solar forecast."""
+
     settings: ReserveSettings
     load: OutageLoad
     forecast: Forecast

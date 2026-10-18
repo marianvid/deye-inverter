@@ -30,6 +30,8 @@ SESSION_MAX_AGE = 30 * 24 * 3600
 
 
 def create_app(services: Services) -> FastAPI:
+    """Builds the FastAPI app: static files, pages and API routers, password gate and session
+    cookies, and the scheduler's lifespan."""
     app = FastAPI(
         title="Deye Inverter", docs_url=None, redoc_url=None, lifespan=_lifespan(services)
     )

@@ -28,6 +28,8 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class DeyeConfig:
+    """DeyeCloud API base URL, path of the credentials file and the inverter's serial number."""
+
     base_url: str
     credentials_file: Path
     device_sn: str
@@ -35,11 +37,15 @@ class DeyeConfig:
 
 @dataclass(frozen=True)
 class StorageConfig:
+    """Path of the SQLite database file."""
+
     database: Path
 
 
 @dataclass(frozen=True)
 class WebConfig:
+    """Host and port the web interface listens on."""
+
     host: str
     port: int
 
@@ -67,6 +73,8 @@ class IntervalsConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
+    """The whole machine configuration: DeyeCloud, storage, web, site and job intervals."""
+
     deye: DeyeConfig
     storage: StorageConfig
     web: WebConfig
@@ -76,6 +84,8 @@ class AppConfig:
 
 @dataclass(frozen=True)
 class Credentials:
+    """DeyeCloud API app id and secret, account email and SHA-256 of the account password."""
+
     app_id: str
     app_secret: str
     email: str
@@ -89,6 +99,8 @@ class ConfigLoader:
         self._environ = os.environ if environ is None else environ
 
     def load(self, path: Path | None = None) -> AppConfig:
+        """Reads the TOML file (default: the path in ``DEYE_INVERTER_CONFIG``) and applies
+        environment overrides and defaults."""
         raw = self._read_file(path or self._path_from_env())
         return AppConfig(
             deye=DeyeConfig(
@@ -149,6 +161,8 @@ class CredentialsReader:
     REQUIRED = ("app_id", "app_secret", "email", "password_sha256")
 
     def read(self, path: Path) -> Credentials:
+        """Parses the credentials file; raises :class:`ConfigError` if it is missing or lacks a
+        required key."""
         if not path.is_file():
             raise ConfigError(f"Credentials file not found: {path}")
         values = self._parse(path.read_text(encoding="utf-8"))

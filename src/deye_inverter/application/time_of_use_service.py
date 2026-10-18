@@ -25,12 +25,16 @@ RECENT_COMMANDS = 20
 
 @dataclass(frozen=True)
 class CommandOutcome:
+    """Result of a command sent to the inverter: status (executed, mismatch, failed), message,
+    whether the read-back matched, and the order id."""
+
     status: str
     message: str
     verified: bool
     order_id: str = ""
 
     def as_dict(self) -> dict[str, Any]:
+        """The outcome as a JSON-ready dict for the journal and the API."""
         return {
             "status": self.status,
             "message": self.message,
@@ -40,6 +44,9 @@ class CommandOutcome:
 
 
 class TimeOfUseService:
+    """Writes a time-of-use table to the inverter, reads it back to verify and journals the command.
+    """
+
     def __init__(
         self,
         gateway: InverterGateway,
@@ -57,6 +64,8 @@ class TimeOfUseService:
         self._clock = clock
 
     def send(self, table: TimeOfUseTable, reason: str) -> CommandOutcome:
+        """Writes the table to the inverter, verifies it by reading back and journals the command
+        with its reason."""
         started = self._clock.now()
         try:
             outcome = self._send_and_verify(table)

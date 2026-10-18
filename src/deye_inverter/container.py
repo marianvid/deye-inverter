@@ -106,6 +106,8 @@ class Storage:
 
     @classmethod
     def open(cls, database: Database, outside: Outside) -> Storage:
+        """Creates every repository over the database, with settings defaulting to the configured
+        site."""
         store = SqliteKeyValueStore(database)
         codec = SettingsCodec(PlannerSettings(site=outside.site))
         return cls(
@@ -121,6 +123,8 @@ class Storage:
 
 
 def build_services(database: Database, outside: Outside) -> Services:
+    """Wires the repositories, planner, command services, views and jobs over the database and the
+    outside systems."""
     db = Storage.open(database, outside)
     clock = outside.clock
     commands = TimeOfUseService(
@@ -175,6 +179,8 @@ def _planner(
 
 
 def build_from_config(config: AppConfig) -> Services:
+    """Builds the services against DeyeCloud, Open-Meteo and the SQLite database, with the
+    background scheduler attached."""
     clock = SystemClock(config.site.timezone)
     credentials = CredentialsReader().read(config.deye.credentials_file)
     client = DeyeCloudClient(config.deye.base_url, credentials)
@@ -192,6 +198,8 @@ def build_from_config(config: AppConfig) -> Services:
 
 
 def build_scheduler(services: Services, timezone: str, intervals: IntervalsConfig) -> JobScheduler:
+    """Schedules the readings, daily energy, history backfill, inverter settings and forecast jobs
+    plus the planner checks."""
     scheduler = JobScheduler(timezone, services.journal, services.clock)
     scheduler.add_interval(
         "readings",

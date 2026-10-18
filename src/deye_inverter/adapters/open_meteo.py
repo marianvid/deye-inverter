@@ -26,6 +26,8 @@ class OpenMeteoForecast(ForecastProvider):
         self._days = days
 
     def fetch(self, site: SiteSettings) -> Forecast:
+        """Downloads the hourly irradiance for the site's panel tilt and azimuth and returns it as a
+        solar forecast in kWh."""
         response = self._http.get(FORECAST_URL, params=self._params(site))
         if response.status_code >= 400:
             raise GatewayError(f"Open-Meteo: HTTP {response.status_code}")

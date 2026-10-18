@@ -36,6 +36,9 @@ FORECAST_HORIZON = timedelta(days=2)
 
 @dataclass
 class Decision:
+    """One planner run: mode, trigger, status, the rule outcomes and the desired time-of-use table
+    with its changes."""
+
     at: datetime
     mode: Mode
     trigger: str
@@ -47,6 +50,7 @@ class Decision:
     changes: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
+        """The decision as a JSON-ready dict, as journaled and returned by the API."""
         return {
             "mode": self.mode.value,
             "trigger": self.trigger,
@@ -62,6 +66,8 @@ class Decision:
 
 
 def merge_slot(table: TimeOfUseTable, index: int, slot: TimeOfUseSlot) -> TimeOfUseTable:
+    """Puts the slot into the time-of-use table; if its new start would cross a neighbour, keeps the
+    slot's old start."""
     try:
         return table.replace_slots({index: slot})
     except TimeOfUseError:
@@ -85,6 +91,9 @@ class PlannerDependencies:
 
 
 class PlannerService:
+    """Evaluates the floor, outage reserve and manual charge rules into a time-of-use table and, in
+    Live mode, sends it."""
+
     def __init__(self, deps: PlannerDependencies) -> None:
         self._manual_charge = deps.manual_charge or (lambda: None)
         self._refresh_forecast = deps.refresh_forecast
@@ -98,6 +107,8 @@ class PlannerService:
         self._clock = deps.clock
 
     def run(self, trigger: str) -> Decision:
+        """Refreshes the forecast, decides the table (sending it when the mode and write limits
+        allow) and journals the decision."""
         settings = self._settings.load()
         note = self._fresh_forecast() if settings.mode is not Mode.OFF else ""
         decision = self._decide(settings, trigger)

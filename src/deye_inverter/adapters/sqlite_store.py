@@ -78,6 +78,7 @@ class Database:
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Cursor]:
+        """Yields a cursor under the lock; commits on success and rolls back on an exception."""
         with self._lock, self._connection:
             yield self._connection.cursor()
 
@@ -87,14 +88,18 @@ def _iso(moment: datetime) -> str:
 
 
 class SqliteReadingRepository(ReadingRepository):
+    """Inverter readings in the ``readings`` table, keyed by UTC time and filed by local day."""
+
     def __init__(self, database: Database, timezone: Any) -> None:
         self._db = database
         self._zone = timezone
 
     def add(self, reading: Reading) -> None:
+        """Stores one reading, replacing any reading taken at the same moment."""
         self.add_many([reading])
 
     def add_many(self, readings: list[Reading]) -> None:
+        """Stores readings in one transaction, replacing any taken at the same moments."""
         rows = [self._row(reading) for reading in readings]
         with self._db.transaction() as cursor:
             cursor.executemany(
@@ -108,6 +113,7 @@ class SqliteReadingRepository(ReadingRepository):
         return _iso(reading.taken_at), day, json.dumps(payload)
 
     def latest(self) -> Reading | None:
+        """Returns the most recent stored reading, or None when there is none."""
         with self._db.transaction() as cursor:
             row = cursor.execute(
                 "SELECT taken_at, data FROM readings ORDER BY taken_at DESC LIMIT 1"
@@ -115,6 +121,7 @@ class SqliteReadingRepository(ReadingRepository):
         return self._reading(row) if row else None
 
     def between(self, start: datetime, end: datetime) -> list[Reading]:
+        """Returns readings taken from ``start`` up to, not including, ``end``, oldest first."""
         with self._db.transaction() as cursor:
             rows = cursor.execute(
                 "SELECT taken_at, data FROM readings WHERE taken_at >= ? AND taken_at < ? "
@@ -124,6 +131,7 @@ class SqliteReadingRepository(ReadingRepository):
         return [self._reading(row) for row in rows]
 
     def samples_per_day(self, start: date, end: date) -> dict[date, int]:
+        """Counts stored readings per local day from ``start`` to ``end``, both inclusive."""
         with self._db.transaction() as cursor:
             rows = cursor.execute(
                 "SELECT day, COUNT(*) AS n FROM readings WHERE day >= ? AND day <= ? GROUP BY day",
@@ -140,10 +148,13 @@ class SqliteReadingRepository(ReadingRepository):
 
 
 class SqliteForecastRepository(ForecastRepository):
+    """Hourly solar forecasts in the ``forecast_hours`` table, one row per hour end."""
+
     def __init__(self, database: Database) -> None:
         self._db = database
 
     def save(self, forecast: Forecast, fetched_at: datetime) -> None:
+        """Stores each forecast hour with its fetch time, overwriting older forecasts for it."""
         rows = [
             (_iso(h.hour_end), h.irradiance, h.solar_kwh, _iso(fetched_at)) for h in forecast.hours
         ]
@@ -155,6 +166,7 @@ class SqliteForecastRepository(ForecastRepository):
             )
 
     def load(self, start: datetime, end: datetime) -> Forecast:
+        """Returns the stored forecast hours ending after ``start`` and up to ``end``."""
         with self._db.transaction() as cursor:
             rows = cursor.execute(
                 "SELECT hour_end, irradiance, solar_kwh FROM forecast_hours "
@@ -168,15 +180,19 @@ class SqliteForecastRepository(ForecastRepository):
 
 
 class SqliteKeyValueStore(KeyValueStore):
+    """Named text values in the ``key_values`` table."""
+
     def __init__(self, database: Database) -> None:
         self._db = database
 
     def get(self, key: str) -> str | None:
+        """Returns the value stored under ``key``, or None when it was never set."""
         with self._db.transaction() as cursor:
             row = cursor.execute("SELECT value FROM key_values WHERE key = ?", (key,)).fetchone()
         return str(row["value"]) if row else None
 
     def put(self, key: str, value: str) -> None:
+        """Stores ``value`` under ``key``, replacing any previous value."""
         with self._db.transaction() as cursor:
             cursor.execute(
                 "INSERT OR REPLACE INTO key_values(key, value) VALUES (?, ?)", (key, value)
@@ -184,6 +200,8 @@ class SqliteKeyValueStore(KeyValueStore):
 
 
 class SqliteSettingsRepository(SettingsRepository):
+    """Planner settings kept as one JSON value in the key-value store."""
+
     KEY = "planner_settings"
 
     def __init__(self, store: KeyValueStore, codec: SettingsCodec | None = None) -> None:
@@ -191,18 +209,23 @@ class SqliteSettingsRepository(SettingsRepository):
         self.codec = codec or SettingsCodec()
 
     def load(self) -> PlannerSettings:
+        """Returns the saved planner settings, or the codec's defaults when none are saved."""
         stored = self._store.get(self.KEY)
         return self.codec.from_dict(json.loads(stored)) if stored else self.codec.defaults
 
     def save(self, settings: PlannerSettings) -> None:
+        """Encodes the planner settings as JSON and stores them, replacing the previous ones."""
         self._store.put(self.KEY, json.dumps(self.codec.to_dict(settings)))
 
 
 class SqliteJournalRepository(JournalRepository):
+    """Journal of planner decisions and inverter commands in the ``journal`` table."""
+
     def __init__(self, database: Database) -> None:
         self._db = database
 
     def add(self, kind: str, at: datetime, entry: dict[str, Any]) -> None:
+        """Appends an entry of the given kind and time, filing its ``status`` for counting."""
         status = str(entry.get("status", ""))
         with self._db.transaction() as cursor:
             cursor.execute(
@@ -211,6 +234,7 @@ class SqliteJournalRepository(JournalRepository):
             )
 
     def recent(self, kind: str | None, limit: int) -> list[dict[str, Any]]:
+        """Returns up to ``limit`` newest entries, of one kind or of all kinds, newest first."""
         query = "SELECT kind, at, entry FROM journal"
         params: tuple[Any, ...] = ()
         if kind:
@@ -221,6 +245,7 @@ class SqliteJournalRepository(JournalRepository):
         return [{"kind": r["kind"], "at": r["at"], **json.loads(r["entry"])} for r in rows]
 
     def count_since(self, kind: str, since: datetime, status: str) -> int:
+        """Counts entries of ``kind`` with ``status`` recorded at or after ``since``."""
         with self._db.transaction() as cursor:
             row = cursor.execute(
                 "SELECT COUNT(*) AS n FROM journal WHERE kind = ? AND at >= ? AND status = ?",
@@ -230,10 +255,13 @@ class SqliteJournalRepository(JournalRepository):
 
 
 class SqliteDailyEnergyRepository(DailyEnergyRepository):
+    """Daily energy totals (solar, consumption, bought, battery) in the ``daily_energy`` table."""
+
     def __init__(self, database: Database) -> None:
         self._db = database
 
     def save(self, record: DailyEnergy) -> None:
+        """Stores one day's energy balance and its source, replacing that day's earlier record."""
         b = record.balance
         with self._db.transaction() as cursor:
             cursor.execute(
@@ -252,6 +280,7 @@ class SqliteDailyEnergyRepository(DailyEnergyRepository):
             )
 
     def between(self, start: date, end: date) -> list[DailyEnergy]:
+        """Returns the daily energy records from ``start`` to ``end``, both inclusive, by day."""
         with self._db.transaction() as cursor:
             rows = cursor.execute(
                 "SELECT * FROM daily_energy WHERE day >= ? AND day <= ? ORDER BY day",
@@ -260,6 +289,7 @@ class SqliteDailyEnergyRepository(DailyEnergyRepository):
         return [self._record(row) for row in rows]
 
     def first_day(self) -> date | None:
+        """Returns the earliest day with a stored energy record, or None when there is none."""
         with self._db.transaction() as cursor:
             row = cursor.execute("SELECT MIN(day) AS first FROM daily_energy").fetchone()
         return date.fromisoformat(row["first"]) if row["first"] else None

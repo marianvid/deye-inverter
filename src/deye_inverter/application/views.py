@@ -27,6 +27,9 @@ SERIES_FIELDS = (
 
 
 class DashboardViews:
+    """Builds the dashboard's live reading, day curves, solar forecast and time-of-use views from
+    the stores."""
+
     def __init__(
         self,
         readings: ReadingRepository,
@@ -42,6 +45,8 @@ class DashboardViews:
         self._clock = clock
 
     def now(self) -> dict[str, Any]:
+        """The latest reading with its age in seconds, plus the battery and charge settings last
+        read."""
         latest = self._readings.latest()
         battery = self._state.battery_settings()
         return {
@@ -52,6 +57,8 @@ class DashboardViews:
         }
 
     def day_series(self, day: date) -> dict[str, Any]:
+        """The day's readings as time series of solar, load, grid and battery power and battery SOC.
+        """
         start = self._midnight(day)
         readings = self._readings.between(start, start + timedelta(days=1))
         return {
@@ -61,6 +68,8 @@ class DashboardViews:
         }
 
     def forecast(self, days: int = 3) -> dict[str, Any]:
+        """Hourly solar forecast from yesterday on, forecast versus actual kWh per day, and actual
+        hourly solar for yesterday and today."""
         today = self._clock.now().date()
         start = self._midnight(today - timedelta(days=1))
         forecast = self._forecasts.load(start, start + timedelta(days=days + 1))
@@ -86,6 +95,8 @@ class DashboardViews:
         }
 
     def time_of_use(self) -> dict[str, Any]:
+        """The inverter's current time-of-use table with its read time, the base table and the
+        charge settings."""
         current = self._state.current_table()
         base = self._state.base_table()
         return {

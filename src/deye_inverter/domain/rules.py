@@ -21,6 +21,9 @@ MIN_CHARGE_KW = 0.1
 
 @dataclass(frozen=True)
 class PlannerContext:
+    """What the rules judge from: time, battery SOC, base table, solar forecast and ratio, house
+    load, grid charging power and site."""
+
     now: datetime
     soc: float
     base_table: TimeOfUseTable
@@ -37,6 +40,9 @@ class PlannerContext:
 
 @dataclass(frozen=True)
 class RuleOutcome:
+    """A rule's result: its name, a one-line summary, the time-of-use slot overrides by index, and
+    the figures behind them."""
+
     rule: str
     summary: str
     overrides: dict[int, TimeOfUseSlot] = field(default_factory=dict)
@@ -44,13 +50,18 @@ class RuleOutcome:
 
 
 class PlannerRule(ABC):
+    """A planner rule that turns a :class:`PlannerContext` into time-of-use slot overrides."""
+
     name: str
 
     @abstractmethod
-    def evaluate(self, context: PlannerContext) -> RuleOutcome: ...
+    def evaluate(self, context: PlannerContext) -> RuleOutcome:
+        """Returns the slots this rule wants changed and the figures that explain why."""
+        ...
 
 
 def clamp_soc(value: int, site: SiteSettings) -> int:
+    """Bounds an SOC between the site's minimum SOC and 100 %."""
     return max(site.min_soc, min(100, value))
 
 
@@ -59,6 +70,7 @@ def _at(day: date, moment: time, like: datetime) -> datetime:
 
 
 def round_down(moment: datetime, step_minutes: int) -> datetime:
+    """Rounds the moment down to a whole multiple of the step in minutes, dropping seconds."""
     extra = moment.minute % max(1, step_minutes)
     return moment.replace(second=0, microsecond=0) - timedelta(minutes=extra)
 
@@ -74,6 +86,8 @@ class JustInTimeCharge:
         self._tolerance = timedelta(minutes=tuning.start_tolerance_minutes)
 
     def plan(self, context: PlannerContext, deadline: datetime, target_soc: int) -> RuleOutcome:
+        """Projects the SOC at the deadline from solar and load and, if short of the target, plans
+        the latest grid charging start."""
         return self._decide(context, deadline, target_soc, self._project(context, deadline))
 
     @staticmethod
@@ -204,6 +218,7 @@ class FloorRule(PlannerRule):
         self._settings = settings
 
     def evaluate(self, context: PlannerContext) -> RuleOutcome:
+        """Sets every slot of the base table to the floor SOC and the floor's grid charge choice."""
         soc = clamp_soc(self._settings.soc, context.site)
         grid = self._settings.grid_charge
         overrides = {
@@ -215,6 +230,7 @@ class FloorRule(PlannerRule):
 
 
 def slot_holding(table: TimeOfUseTable, moment: datetime) -> TimeOfUseSlot:
+    """The time-of-use slot in force at the moment's clock time."""
     return table.slots[table.index_at(moment.time())]
 
 

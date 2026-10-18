@@ -55,6 +55,9 @@ class GuardedJob:
 
 
 class JobScheduler:
+    """Runs the background jobs on an APScheduler in the site's time zone, each guarded so failures
+    go to the journal."""
+
     def __init__(self, timezone: str, journal: JournalRepository, clock: Clock) -> None:
         self._scheduler = BackgroundScheduler(timezone=timezone)
         self._journal = journal
@@ -62,6 +65,7 @@ class JobScheduler:
         self._timezone = timezone
 
     def add_interval(self, name: str, job: Callable[[], Any], minutes: int) -> None:
+        """Schedules the job every given number of minutes, with a first run right away."""
         self._scheduler.add_job(
             self._guard(name, job),
             IntervalTrigger(minutes=minutes, timezone=self._timezone),
@@ -72,6 +76,7 @@ class JobScheduler:
         )
 
     def schedule_planner(self, settings: PlannerSettings, job: Callable[[str], Any]) -> None:
+        """Replaces the planner jobs with one daily cron job per configured check time."""
         for existing in self._scheduler.get_jobs():
             if existing.id.startswith(PLANNER_JOB_PREFIX):
                 existing.remove()
@@ -87,9 +92,11 @@ class JobScheduler:
 
     @staticmethod
     def planner_times(settings: PlannerSettings) -> list[time]:
+        """The clock times at which the planner checks run, from the tuning settings."""
         return list(settings.tuning.check_times())
 
     def next_runs(self) -> list[dict[str, str]]:
+        """Every scheduled job with its next run time (ISO), soonest first."""
         jobs = sorted(self._scheduler.get_jobs(), key=lambda j: j.next_run_time or 0)
         return [
             {"job": j.id, "next_run": j.next_run_time.isoformat() if j.next_run_time else ""}
@@ -109,9 +116,11 @@ class JobScheduler:
         return min(times).isoformat() if times else None
 
     def start(self) -> None:
+        """Starts running the scheduled jobs in a background thread."""
         self._scheduler.start()
 
     def shutdown(self) -> None:
+        """Stops the scheduler without waiting for running jobs, if it is running."""
         if self._scheduler.running:
             self._scheduler.shutdown(wait=False)
 

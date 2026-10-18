@@ -20,6 +20,9 @@ class TimeOfUseError(ValueError):
 
 @dataclass(frozen=True)
 class TimeOfUseSlot:
+    """One time-of-use slot: start time, battery SOC to keep, power limit (W), voltage and the grid
+    and generator charge switches."""
+
     start: time
     soc: int
     power: int
@@ -35,14 +38,18 @@ class TimeOfUseSlot:
 
     @property
     def start_minute(self) -> int:
+        """The slot's start in minutes from midnight."""
         return self.start.hour * 60 + self.start.minute
 
     def with_changes(self, **changes: Any) -> TimeOfUseSlot:
+        """A copy of the slot with the given fields replaced."""
         return replace(self, **changes)
 
 
 @dataclass(frozen=True)
 class TimeOfUseTable:
+    """The six time-of-use slots in ascending order of distinct start times."""
+
     slots: tuple[TimeOfUseSlot, ...]
 
     def __post_init__(self) -> None:
@@ -84,9 +91,12 @@ class TimeOfUseTable:
         ]
 
     def replace_slots(self, changes: dict[int, TimeOfUseSlot]) -> TimeOfUseTable:
+        """A new table with the slots at the given indexes replaced; raises :class:`TimeOfUseError`
+        if starts end up out of order."""
         return TimeOfUseTable(tuple(changes.get(i, slot) for i, slot in enumerate(self.slots)))
 
     def differences(self, other: TimeOfUseTable) -> list[int]:
+        """Indexes of the slots that differ from the other table."""
         pairs = enumerate(zip(self.slots, other.slots, strict=True))
         return [i for i, (mine, theirs) in pairs if mine != theirs]
 
@@ -140,6 +150,7 @@ class TimeOfUseTable:
 
 
 def table_from_slots(slots: Iterable[TimeOfUseSlot]) -> TimeOfUseTable:
+    """Builds a validated time-of-use table from six slots."""
     return TimeOfUseTable(tuple(slots))
 
 
@@ -159,6 +170,8 @@ def table_to_dicts(table: TimeOfUseTable) -> list[dict[str, Any]]:
 
 
 def table_from_dicts(items: Iterable[dict[str, Any]]) -> TimeOfUseTable:
+    """Rebuilds a time-of-use table from its plain JSON form (``HH:MM`` starts, missing switches
+    off)."""
     return table_from_slots(
         TimeOfUseSlot(
             start=time.fromisoformat(str(item["start"])),

@@ -14,11 +14,16 @@ SESSION_FLAG = "authenticated"
 
 
 class AuthGate(BaseHTTPMiddleware):  # type: ignore[misc,unused-ignore]
+    """Sends visitors to the setup page until a password exists, then to the login page until the
+    session is authenticated."""
+
     def __init__(self, app: ASGIApp, passwords: PasswordService) -> None:
         super().__init__(app)
         self._passwords = passwords
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        """Passes static files, setup and login, and authenticated requests; others get a 401 (API)
+        or a redirect (pages)."""
         path = request.url.path
         if not self._passwords.is_set():
             if path.startswith(("/static/", "/setup")):

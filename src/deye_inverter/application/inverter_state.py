@@ -25,39 +25,51 @@ class InverterState:
         self._store = store
 
     def current_table(self) -> TimeOfUseTable | None:
+        """The time-of-use table last read from the inverter, or None before the first read."""
         return self._table(CURRENT_TABLE)
 
     def current_table_read_at(self) -> str | None:
+        """ISO timestamp of the last time-of-use table read, or None before the first read."""
         stored = self._load(CURRENT_TABLE)
         return str(stored["read_at"]) if stored else None
 
     def remember_current_table(self, table: TimeOfUseTable, read_at: datetime) -> None:
+        """Stores the table read from the inverter; the first one read also becomes the base table.
+        """
         self._save(CURRENT_TABLE, {"read_at": read_at.isoformat(), "slots": table_to_dicts(table)})
         if self.base_table() is None:
             self.save_base_table(table, read_at)
 
     def base_table(self) -> TimeOfUseTable | None:
+        """The owner's base time-of-use table the planner starts from, or None if not saved yet."""
         return self._table(BASE_TABLE)
 
     def save_base_table(self, table: TimeOfUseTable, saved_at: datetime) -> None:
+        """Replaces the base time-of-use table the planner starts from."""
         self._save(BASE_TABLE, {"read_at": saved_at.isoformat(), "slots": table_to_dicts(table)})
 
     def battery_settings(self) -> BatterySettings | None:
+        """The battery settings last read from the inverter, or None before the first read."""
         stored = self._load(BATTERY)
         return BatterySettings(**stored["settings"]) if stored else None
 
     def remember_battery_settings(self, settings: BatterySettings, read_at: datetime) -> None:
+        """Stores the battery settings read from the inverter with the time they were read."""
         self._save(BATTERY, {"read_at": read_at.isoformat(), "settings": asdict(settings)})
 
     def charge_settings(self) -> ChargeSettings | None:
+        """The charge settings (grid charge switch and current) last read, or None before the first
+        read."""
         stored = self._load(CHARGE)
         return ChargeSettings(**stored["settings"]) if stored else None
 
     def charge_settings_read_at(self) -> str | None:
+        """ISO timestamp of the last charge settings read, or None before the first read."""
         stored = self._load(CHARGE)
         return str(stored["read_at"]) if stored else None
 
     def remember_charge_settings(self, settings: ChargeSettings, read_at: datetime) -> None:
+        """Stores the charge settings read from the inverter with the time they were read."""
         self._save(CHARGE, {"read_at": read_at.isoformat(), "settings": asdict(settings)})
 
     def _table(self, key: str) -> TimeOfUseTable | None:

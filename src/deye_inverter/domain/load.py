@@ -21,6 +21,7 @@ class LoadProfile:
 
     @classmethod
     def flat(cls, kw: float) -> LoadProfile:
+        """A profile with the same house load in kW for every hour of the day."""
         return cls((kw,) * HOURS_PER_DAY)
 
     def energy_between(self, start: datetime, end: datetime) -> float:

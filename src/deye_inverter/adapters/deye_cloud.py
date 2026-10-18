@@ -42,9 +42,11 @@ class DeyeCloudClient:
         self._token_lock = threading.Lock()
 
     def post(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Sends a JSON body to a DeyeCloud path with a bearer token; returns the checked answer."""
         return self._call("POST", path, body)
 
     def get(self, path: str) -> dict[str, Any]:
+        """Fetches a DeyeCloud path with a bearer token; returns the checked JSON answer."""
         return self._call("GET", path, None)
 
     def _call(self, method: str, path: str, body: dict[str, Any] | None) -> dict[str, Any]:
@@ -87,9 +89,11 @@ class TimeOfUseCodec:
     """Maps DeyeCloud ``timeUseSettingItems`` to the domain table and back."""
 
     def decode(self, items: list[dict[str, Any]]) -> TimeOfUseTable:
+        """Builds a time-of-use table from DeyeCloud slot items (start time, SOC, power, flags)."""
         return TimeOfUseTable(tuple(self._slot(item) for item in items))
 
     def encode(self, table: TimeOfUseTable) -> list[dict[str, Any]]:
+        """Turns a time-of-use table into DeyeCloud slot items, one per slot, times as HH:MM."""
         return [
             {
                 "time": slot.start.strftime("%H:%M"),
@@ -143,6 +147,7 @@ class ReadingMapper:
     TEMPERATURE = "Temperature- Battery"
 
     def map(self, device: dict[str, Any]) -> Reading:
+        """Builds a reading (powers, battery SOC, daily energies) from one device's data list."""
         raw = {str(i.get("key")): str(i.get("value")) for i in device.get("dataList", [])}
         values = {name: _number(raw.get(key)) for name, key in self.FIELDS.items()}
         taken_at = datetime.fromtimestamp(float(device.get("collectionTime") or 0), tz=UTC)
@@ -178,6 +183,7 @@ class ChargeSettingsMapper:
     }
 
     def map(self, registers: dict[str, Any]) -> ChargeSettings:
+        """Reads grid charge, work mode, time-of-use and current limits; raises if any is absent."""
         value = _register_reader(registers)
         mode = value(self.WORK_MODE)
         return ChargeSettings(
@@ -220,11 +226,13 @@ class DeyeCloudGateway(InverterGateway):
 
     @property
     def device_sn(self) -> str:
+        """The inverter's serial number, found on the DeyeCloud account on first use if unset."""
         if not self._device_sn:
             self._device_sn = self._discover_inverter()
         return self._device_sn
 
     def read_live(self) -> Reading:
+        """Fetches the inverter's latest data from DeyeCloud and maps it to a reading."""
         data = self._client.post("/device/latest", {"deviceList": [self.device_sn]})
         devices = data.get("deviceDataList") or []
         if not devices:
@@ -232,10 +240,12 @@ class DeyeCloudGateway(InverterGateway):
         return self._mapper.map(devices[0])
 
     def read_time_of_use(self) -> TimeOfUseTable:
+        """Fetches the time-of-use table currently configured on the inverter."""
         data = self._client.post("/config/tou", {"deviceSn": self.device_sn})
         return self._tou_codec.decode(data.get("timeUseSettingItems") or [])
 
     def read_battery_settings(self) -> BatterySettings:
+        """Fetches the battery config: max charge current, shutdown and low SOC, capacity in Ah."""
         data = self._client.post("/config/battery", {"deviceSn": self.device_sn})
         return BatterySettings(
             max_charge_current=float(data.get("maxChargeCurrent") or 0),
@@ -252,6 +262,7 @@ class DeyeCloudGateway(InverterGateway):
         return ChargeSettingsMapper().map(registers)
 
     def write_time_of_use(self, table: TimeOfUseTable) -> WriteResult:
+        """Sends a time-of-use table to the inverter and waits for the order to finish."""
         body = {
             "deviceSn": self.device_sn,
             "timeUseSettingItems": self._tou_codec.encode(table),
@@ -264,6 +275,7 @@ class DeyeCloudGateway(InverterGateway):
         return self._wait_for_order(order_id)
 
     def set_grid_charge(self, enabled: bool) -> WriteResult:
+        """Switches battery charging from the grid on or off and waits for the order to finish."""
         body = {
             "deviceSn": self.device_sn,
             "batteryModeType": "GRID_CHARGE",

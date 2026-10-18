@@ -9,6 +9,9 @@ from typing import Any
 
 
 class Mode(StrEnum):
+    """Automation mode: off, dry-run (decide but do not send) or live (send tables to the inverter).
+    """
+
     OFF = "off"
     DRY_RUN = "dry-run"
     LIVE = "live"
@@ -52,6 +55,7 @@ class ReserveSettings:
     generator_bridge_hours: float = 1.0
 
     def applies_on(self, day: date) -> bool:
+        """True if the reserve is enabled and the day is a chosen weekday and not a skipped date."""
         return self.enabled and day.weekday() in self.weekdays and day not in self.skip_dates
 
 
@@ -65,6 +69,9 @@ class FloorSettings:
 
 @dataclass(frozen=True)
 class SiteSettings:
+    """The installation: location, panel size and orientation, battery capacity and voltage, minimum
+    SOC and load history defaults."""
+
     # The real location comes from the private configuration (opts), see SiteConfig.
     latitude: float = 0.0
     longitude: float = 0.0
@@ -102,12 +109,17 @@ class TuningSettings:
     verify_pause_seconds: float = 15.0
 
     def check_times(self) -> tuple[time, ...]:
+        """The clock times of the planner checks: every ``check_every_minutes`` (at least 5) from
+        midnight."""
         step = max(5, self.check_every_minutes)
         return tuple(time(m // 60, m % 60) for m in range(0, DAY_MINUTES, step))
 
 
 @dataclass(frozen=True)
 class PlannerSettings:
+    """Everything the owner sets for the planner: mode, write limits, reserve, floor, site and
+    tuning."""
+
     mode: Mode = Mode.DRY_RUN
     # Safety net against a planner fault, not a limit of the inverter or DeyeCloud.
     max_writes_per_day: int = 24
@@ -130,10 +142,13 @@ class SettingsCodec:
         self.defaults = defaults or PlannerSettings()
 
     def to_dict(self, settings: PlannerSettings) -> dict[str, Any]:
+        """The settings as nested JSON-ready values, with times as ``HH:MM`` and dates as ISO
+        strings."""
         encoded: dict[str, Any] = _encode(asdict(settings))
         return encoded
 
     def from_dict(self, data: dict[str, Any]) -> PlannerSettings:
+        """Rebuilds the settings from stored values, taking the defaults for anything missing."""
         defaults = self.defaults
         return PlannerSettings(
             mode=Mode(data.get("mode", defaults.mode)),

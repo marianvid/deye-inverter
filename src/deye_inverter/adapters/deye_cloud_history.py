@@ -18,6 +18,8 @@ SOURCE = "cloud"
 
 
 class DeyeCloudHistory(EnergyHistorySource):
+    """:class:`EnergyHistorySource` that reads the station history from the DeyeCloud OpenAPI."""
+
     def __init__(self, client: DeyeCloudClient, timezone: str, station_id: str = "") -> None:
         self._client = client
         self._zone = ZoneInfo(timezone)
@@ -26,16 +28,22 @@ class DeyeCloudHistory(EnergyHistorySource):
 
     @property
     def station_id(self) -> str:
+        """The DeyeCloud station id, discovered from the account's first station when not
+        configured."""
         if not self._station_id:
             self._station_id = self._discover_station()
         return self._station_id
 
     def first_day(self) -> date:
+        """The day the station started operating, as DeyeCloud reports it (asked once, then cached).
+        """
         if self._first_day is None:
             self._first_day = self._operating_since()
         return self._first_day
 
     def daily(self, start: date, end: date) -> list[DailyEnergy]:
+        """Daily energy balances (solar, consumption, bought, charged, discharged) from start to
+        end, asked 30 days per call."""
         records: list[DailyEnergy] = []
         chunk_start = start
         while chunk_start <= end:
@@ -45,6 +53,8 @@ class DeyeCloudHistory(EnergyHistorySource):
         return records
 
     def frames(self, day: date) -> list[Reading]:
+        """The day's 5-minute power frames (solar, load, grid, battery power and SOC) as readings.
+        """
         items = self._history(
             GRANULARITY_FRAME, day.isoformat(), (day + timedelta(days=1)).isoformat()
         )

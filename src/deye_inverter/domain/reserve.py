@@ -37,6 +37,9 @@ def _minutes(moment: time) -> int:
 
 
 class ReserveRule(PlannerRule):
+    """Holds the outage reserve SOC in the protected slots, grid charging just in time when solar
+    will not reach it."""
+
     name = NAME
 
     def __init__(self, settings: ReserveSettings, tuning: TuningSettings) -> None:
@@ -56,6 +59,8 @@ class ReserveRule(PlannerRule):
         return [self._settings.protect_from, *later]
 
     def evaluate(self, context: PlannerContext) -> RuleOutcome:
+        """Simulates the outage reserve for each protected moment on days it applies and returns the
+        slots that hold or reach it."""
         if not self._settings.enabled:
             return RuleOutcome(self.name, "Disabled; the floor applies everywhere.")
         simulation = OutageSimulation(

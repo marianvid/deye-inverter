@@ -24,6 +24,8 @@ PAGES = {
 
 
 class PageController:
+    """Routes the HTML page shells and the password setup, login and logout forms."""
+
     def __init__(self, services: Services, templates: Jinja2Templates) -> None:
         self._services = services
         self._templates = templates
@@ -46,6 +48,8 @@ class PageController:
         return render
 
     def setup_form(self, request: Request) -> Response:
+        """Shows the first-visit form for choosing the password, or redirects to login once one is
+        set."""
         if self._services.passwords.is_set():
             return RedirectResponse("/login", status_code=303)
         return self._form(request, "setup.html", error=None)
@@ -53,6 +57,8 @@ class PageController:
     def setup_submit(
         self, request: Request, password: Annotated[str, Form()], confirm: Annotated[str, Form()]
     ) -> Response:
+        """Saves the chosen password if both entries match and it is long enough, then logs the
+        session in."""
         if self._services.passwords.is_set():
             return RedirectResponse("/login", status_code=303)
         if password != confirm:
@@ -65,9 +71,12 @@ class PageController:
         return RedirectResponse("/", status_code=303)
 
     def login_form(self, request: Request) -> Response:
+        """Shows the login form."""
         return self._form(request, "login.html", error=None)
 
     def login_submit(self, request: Request, password: Annotated[str, Form()]) -> Response:
+        """Marks the session authenticated and redirects to the Now page if the password is right;
+        else shows the form again."""
         if not self._services.passwords.verify(password):
             return self._form(request, "login.html", error="Wrong password.")
         request.session[SESSION_FLAG] = True
@@ -75,6 +84,7 @@ class PageController:
 
     @staticmethod
     def logout(request: Request) -> Response:
+        """Clears the session and redirects to the login page."""
         request.session.clear()
         return RedirectResponse("/login", status_code=303)
 

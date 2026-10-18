@@ -13,6 +13,8 @@ from deye_inverter.web.app import create_app
 
 
 def main() -> None:
+    """Loads the configuration, builds the services and serves the web interface and background jobs
+    with uvicorn."""
     parser = argparse.ArgumentParser(prog="deye-inverter")
     parser.add_argument("command", choices=["serve"], help="serve: web interface and jobs")
     parser.parse_args()

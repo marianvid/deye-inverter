@@ -28,6 +28,8 @@ LAST_CHANGE_SEARCH = 500
 
 
 class MonitoringApi:
+    """Read-only endpoints: live state, one day's readings, energy statistics, solar forecast."""
+
     def __init__(self, services: Services) -> None:
         self._views = services.views
         self._statistics = services.statistics
@@ -38,12 +40,15 @@ class MonitoringApi:
         self.router.add_api_route("/forecast", self.forecast, methods=["GET"])
 
     def now(self) -> dict[str, Any]:
+        """Returns the latest reading, its age, and the battery and charge settings last read."""
         return self._views.now()
 
     def day(self, day: date = Query(...)) -> dict[str, Any]:  # noqa: B008
+        """Returns the day's readings as time series (HH:MM times plus one list per field)."""
         return self._views.day_series(day)
 
     def statistics(self, period: str = "day", day: date | None = None) -> dict[str, Any]:
+        """Returns the energy summary for the period around ``day``; 400 for an unknown period."""
         try:
             chosen = Period(period)
         except ValueError as error:
@@ -51,10 +56,13 @@ class MonitoringApi:
         return self._statistics.summary(chosen, day)
 
     def forecast(self) -> dict[str, Any]:
+        """Returns hourly and daily solar forecasts from yesterday on, with actual solar energy."""
         return self._views.forecast()
 
 
 class PlanApi:
+    """Endpoints for the planner: its overview, a manual run, and the automation mode."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self.router = APIRouter(prefix="/api/plan")
@@ -63,6 +71,7 @@ class PlanApi:
         self.router.add_api_route("/mode", self.set_mode, methods=["POST"])
 
     def overview(self) -> dict[str, Any]:
+        """Returns mode, write counts and limits, plan preview, recent decisions, inverter table."""
         settings = self._services.settings.load()
         scheduler = self._services.scheduler
         return {
@@ -93,9 +102,11 @@ class PlanApi:
         return None
 
     def run_now(self) -> dict[str, Any]:
+        """Runs the planner now (trigger "manual") and returns its decision."""
         return self._services.planner.run("manual").as_dict()
 
     def set_mode(self, mode: str = Body(..., embed=True)) -> dict[str, str]:
+        """Saves the automation mode, ending any manual charge when leaving Live; 400 if unknown."""
         try:
             new_mode = Mode(mode)
         except ValueError as error:
@@ -108,6 +119,8 @@ class PlanApi:
 
 
 class TimeOfUseApi:
+    """Endpoints for the inverter's time-of-use table and the saved base table."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self.router = APIRouter(prefix="/api/time-of-use")
@@ -117,9 +130,11 @@ class TimeOfUseApi:
         self.router.add_api_route("/send", self.send, methods=["POST"])
 
     def show(self) -> dict[str, Any]:
+        """Returns the inverter's current table and read time, the base table, charge settings."""
         return self._services.views.time_of_use()
 
     def refresh(self) -> dict[str, Any]:
+        """Re-reads the table and settings from the inverter, returns them; 502 if unreachable."""
         try:
             self._services.refresh_inverter()
         except GatewayError as error:
@@ -127,16 +142,19 @@ class TimeOfUseApi:
         return self.show()
 
     def save_base(self, slots: list[dict[str, Any]] = Body(..., embed=True)) -> dict[str, Any]:  # noqa: B008
+        """Saves the posted slots as the base time-of-use table and returns the tables."""
         table = self.table(slots)
         self._services.state.save_base_table(table, self._services.clock.now())
         return self.show()
 
     def send(self, slots: list[dict[str, Any]] = Body(..., embed=True)) -> dict[str, Any]:  # noqa: B008
+        """Sends the posted slots to the inverter as its time-of-use table; returns the outcome."""
         outcome = self._services.time_of_use.send(self.table(slots), "manual")
         return {**outcome.as_dict(), **self.show()}
 
     @staticmethod
     def table(slots: list[dict[str, Any]]) -> TimeOfUseTable:
+        """Builds a time-of-use table from posted slot dicts; raises HTTP 400 when it is invalid."""
         try:
             return table_from_dicts(slots)
         except (TimeOfUseError, KeyError, ValueError) as error:
@@ -144,17 +162,22 @@ class TimeOfUseApi:
 
 
 class ChargeSettingsApi:
+    """Endpoint that switches the inverter's grid charge on or off."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self.router = APIRouter(prefix="/api/charge-settings")
         self.router.add_api_route("/grid-charge", self.set_grid_charge, methods=["POST"])
 
     def set_grid_charge(self, enabled: bool = Body(..., embed=True)) -> dict[str, Any]:
+        """Turns battery charging from the grid on or off; returns the outcome and the tables."""
         outcome = self._services.charging.set_grid_charge(enabled)
         return {**outcome.as_dict(), **self._services.views.time_of_use()}
 
 
 class ManualChargeApi:
+    """Endpoints to view, start and cancel a manual battery charge to a target SOC."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self.router = APIRouter(prefix="/api/manual-charge")
@@ -163,6 +186,7 @@ class ManualChargeApi:
         self.router.add_api_route("", self.cancel, methods=["DELETE"])
 
     def show(self) -> dict[str, Any]:
+        """Returns the manual charge in force, battery SOC and power, grid charge and mode."""
         return self._services.manual.status()
 
     def start(
@@ -171,6 +195,7 @@ class ManualChargeApi:
         ready_time: str | None = Body(None),
         hold_until: str | None = Body(None),
     ) -> dict[str, Any]:
+        """Starts a manual charge to ``target_soc``; 409 when locked out, 400 when invalid."""
         try:
             result = self._services.manual.start(
                 target_soc, _clock_time(ready_time), _clock_time(hold_until)
@@ -182,6 +207,7 @@ class ManualChargeApi:
         return {**result, **self._services.manual.status()}
 
     def cancel(self) -> dict[str, Any]:
+        """Ends the manual charge, reruns the planner, and returns the new manual charge status."""
         self._services.manual.cancel()
         return self._services.manual.status()
 
@@ -191,6 +217,8 @@ def _clock_time(value: str | None) -> time | None:
 
 
 class ProfilesApi:
+    """Endpoints for named time-of-use profiles: list, save, delete, apply to the inverter."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self.router = APIRouter(prefix="/api/time-of-use/profiles")
@@ -200,6 +228,7 @@ class ProfilesApi:
         self.router.add_api_route("/{name}/apply", self.apply, methods=["POST"])
 
     def show(self) -> dict[str, Any]:
+        """Returns the automation mode and every saved profile, sorted by name."""
         return {
             "mode": self._services.settings.load().mode.value,
             "profiles": [p.as_dict() for p in self._services.profiles.all()],
@@ -210,6 +239,7 @@ class ProfilesApi:
         name: str = Body(...),
         slots: list[dict[str, Any]] = Body(...),  # noqa: B008
     ) -> dict[str, Any]:
+        """Saves the posted slots as the named profile and returns the profiles; 400 if invalid."""
         try:
             self._services.profiles.save(name, TimeOfUseApi.table(slots))
         except ProfileError as error:
@@ -217,10 +247,12 @@ class ProfilesApi:
         return self.show()
 
     def delete(self, name: str) -> dict[str, Any]:
+        """Deletes the named profile and returns the remaining profiles."""
         self._services.profiles.delete(name)
         return self.show()
 
     def apply(self, name: str) -> dict[str, Any]:
+        """Sends the named profile to the inverter; 409 unless automation is off, 404 if unknown."""
         try:
             outcome = self._services.profiles.apply(name)
         except ProfilesLockedError as error:
@@ -231,6 +263,8 @@ class ProfilesApi:
 
 
 class SettingsApi:
+    """Endpoints to read and save the planner settings."""
+
     def __init__(self, services: Services) -> None:
         self._services = services
         self._codec = services.settings.codec
@@ -239,9 +273,11 @@ class SettingsApi:
         self.router.add_api_route("", self.save, methods=["POST"])
 
     def show(self) -> dict[str, Any]:
+        """Returns the saved planner settings as a dict."""
         return self._codec.to_dict(self._services.settings.load())
 
     def save(self, data: dict[str, Any] = Body(...)) -> dict[str, Any]:  # noqa: B008
+        """Saves the planner settings and reschedules the planner; 400 when they are invalid."""
         try:
             settings = self._codec.from_dict(data)
         except (ValueError, TypeError) as error:
@@ -253,6 +289,8 @@ class SettingsApi:
 
 
 class LogApi:
+    """Endpoint listing the journal of planner decisions and inverter commands."""
+
     def __init__(self, services: Services) -> None:
         self._journal = services.journal
         self.router = APIRouter(prefix="/api/log")
@@ -261,4 +299,5 @@ class LogApi:
     def entries(
         self, kind: str | None = None, limit: int = Query(100, ge=1, le=1000)
     ) -> list[dict[str, Any]]:
+        """Returns up to ``limit`` (1-1000) newest journal entries, optionally of one kind."""
         return self._journal.recent(kind, limit)

@@ -34,13 +34,16 @@ class ManualChargeRepository:
         self._store = store
 
     def current(self) -> ManualCharge | None:
+        """The stored manual charge, or None when no charge is in force."""
         raw = self._store.get(KEY)
         return ManualCharge.from_dict(json.loads(raw)) if raw else None
 
     def save(self, charge: ManualCharge) -> None:
+        """Stores the manual charge as JSON, replacing any previous one."""
         self._store.put(KEY, json.dumps(charge.as_dict()))
 
     def clear(self) -> None:
+        """Removes the manual charge in force."""
         self._store.put(KEY, "")
 
 
@@ -59,6 +62,9 @@ class ManualChargeDependencies:
 
 
 class ManualChargeService:
+    """Starts, follows and ends a manual "charge the battery to X %" order, switching grid charge as
+    needed."""
+
     def __init__(self, deps: ManualChargeDependencies) -> None:
         self._charges = deps.charges
         self._settings = deps.settings
@@ -70,11 +76,14 @@ class ManualChargeService:
         self._clock = deps.clock
 
     def current(self) -> ManualCharge | None:
+        """The manual charge in force, or None."""
         return self._charges.current()
 
     def start(
         self, target_soc: int, ready_time: time | None, hold_time: time | None
     ) -> dict[str, Any]:
+        """Starts a charge to the target SOC (optionally ready by and held until a clock time) in
+        Live mode and runs the planner; returns the charge and the decision."""
         settings = self._settings.load()
         if settings.mode is not Mode.LIVE:
             raise ManualChargeLockedError("Manual charge works only in Live mode (Plan page)")
@@ -93,6 +102,8 @@ class ManualChargeService:
         return {"charge": charge.as_dict(), "decision": decision.as_dict()}
 
     def cancel(self, reason: str = "cancelled", run_planner: bool = True) -> None:
+        """Ends the manual charge, turns grid charge back off if the charge turned it on, and reruns
+        the planner in Live mode."""
         charge = self.current()
         if charge is None:
             return
@@ -120,6 +131,8 @@ class ManualChargeService:
             self._planner.run("manual charge")
 
     def status(self) -> dict[str, Any]:
+        """The charge in force, the latest battery SOC and power, the grid charge switch and the
+        automation mode."""
         latest = self._readings.latest()
         switch = self._state.charge_settings()
         charge = self.current()

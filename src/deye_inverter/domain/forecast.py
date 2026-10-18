@@ -19,15 +19,19 @@ class ForecastHour:
 
     @property
     def hour_start(self) -> datetime:
+        """The moment the forecast hour begins, one hour before ``hour_end``."""
         return self.hour_end - HOUR
 
 
 @dataclass(frozen=True)
 class Forecast:
+    """Hourly solar forecast for the site, ordered by hour end."""
+
     hours: tuple[ForecastHour, ...]
 
     @classmethod
     def of(cls, hours: Iterable[ForecastHour]) -> Forecast:
+        """Builds a forecast from hours in any order, sorted by hour end."""
         return cls(tuple(sorted(hours, key=lambda h: h.hour_end)))
 
     def energy_between(self, start: datetime, end: datetime) -> float:
@@ -40,7 +44,9 @@ class Forecast:
         return total
 
     def energy_on(self, day: date) -> float:
+        """Solar kWh expected on the given day (hours that start on it)."""
         return sum(h.solar_kwh for h in self.hours if h.hour_start.date() == day)
 
     def is_empty(self) -> bool:
+        """True when the forecast holds no hours."""
         return not self.hours
