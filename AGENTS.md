@@ -32,3 +32,6 @@ A web application (served from a home-lab container) that:
    code: update `docs/architecture.md` and add a record in `docs/decisions/`
    for every important decision. The reviewer's gate passes before every commit.
 7. User interface language: English.
+8. Say before doing (decided 2026-10-19, `claude/index.md` rule 11): before any work, tell
+   the owner in Romanian what you intend to do and why; send a short status at each step that
+   takes noticeable time; at the end say what was done and what is left. Approvals still apply.
