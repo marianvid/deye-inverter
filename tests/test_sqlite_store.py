@@ -1,3 +1,5 @@
+import sqlite3
+from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -11,6 +13,7 @@ from deye_inverter.adapters.sqlite_store import (
     SqliteSettingsRepository,
 )
 from deye_inverter.domain.energy import DailyEnergy, EnergyBalance
+from deye_inverter.domain.forecast import Forecast
 from deye_inverter.domain.settings import Mode, PlannerSettings
 from tests.fakes import ZONE, at, flat_forecast, reading
 
@@ -34,6 +37,24 @@ def test_forecast_save_and_load() -> None:
     loaded = repo.load(at(8), at(10))
     assert [h.solar_kwh for h in loaded.hours] == [1.5, 1.5]
     assert loaded.hours[0].hour_end == at(9)
+    assert loaded.hours[0].temperature is None
+    warm = Forecast.of(replace(h, temperature=12.5) for h in flat_forecast(at(8), 2, 1.0).hours)
+    repo.save(warm, at(8))
+    assert [h.temperature for h in repo.load(at(8), at(10)).hours] == [12.5, 12.5]
+
+
+def test_older_database_gets_the_temperature_column(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.execute(
+        "CREATE TABLE forecast_hours (hour_end TEXT PRIMARY KEY, irradiance REAL NOT NULL, "
+        "solar_kwh REAL NOT NULL, fetched_at TEXT NOT NULL)"
+    )
+    old.commit()
+    old.close()
+    repo = SqliteForecastRepository(Database(path))
+    repo.save(flat_forecast(at(8), 1, 1.0), at(7))
+    assert repo.load(at(8), at(9)).hours[0].temperature is None
 
 
 def test_settings_default_and_saved() -> None:

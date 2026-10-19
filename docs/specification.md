@@ -147,6 +147,7 @@ pytest (branch coverage ≥ 80 %), ruff, mypy strict, the reviewer's gate.
 ## 10. Open points
 
 - Writes per day on changeable days were 12–24 (2026-10-15 … 17); damped on 2026-10-18 (decision 0007, revision). Watch the next changeable days.
+- An electric heater (3 kW) runs on the inverter's phase, grid side, started by hand. The hourly outside temperature (Open-Meteo `temperature_2m`) is stored with the solar forecast from 2026-10-19, so that this winter's data can show when the heater runs. The planner does not use it yet.
 
 ## 11. Statistics (added 2026-10-05)
 

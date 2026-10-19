@@ -11,11 +11,13 @@ HOUR = timedelta(hours=1)
 
 @dataclass(frozen=True)
 class ForecastHour:
-    """Expected solar energy in the hour that *ends* at ``hour_end``."""
+    """Expected solar energy in the hour that *ends* at ``hour_end``, and the outside air
+    temperature (°C) at ``hour_end`` when the source gives it."""
 
     hour_end: datetime
     irradiance: float
     solar_kwh: float
+    temperature: float | None = None
 
     @property
     def hour_start(self) -> datetime:

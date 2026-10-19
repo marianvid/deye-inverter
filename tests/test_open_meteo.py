@@ -19,6 +19,7 @@ def test_turns_irradiance_into_energy() -> None:
                 "hourly": {
                     "time": ["2026-10-05T11:00", "2026-10-05T12:00", "2026-10-05T13:00"],
                     "global_tilted_irradiance": [500.0, None, 1000.0],
+                    "temperature_2m": [8.5, 9.0, None],
                 }
             },
         )
@@ -28,6 +29,8 @@ def test_turns_irradiance_into_energy() -> None:
     )
     forecast = provider.fetch(SiteSettings())
     assert [h.solar_kwh for h in forecast.hours] == pytest.approx([2.46, 4.92])
+    assert [h.temperature for h in forecast.hours] == [8.5, None]
+    assert seen["hourly"] == "global_tilted_irradiance,temperature_2m"
     assert seen["tilt"] == "28.0" and seen["azimuth"] == "0.0"
     assert forecast.hours[0].hour_end.utcoffset() is not None
 

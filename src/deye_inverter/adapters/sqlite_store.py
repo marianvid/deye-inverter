@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS forecast_hours (
     hour_end TEXT PRIMARY KEY,
     irradiance REAL NOT NULL,
     solar_kwh REAL NOT NULL,
-    fetched_at TEXT NOT NULL
+    fetched_at TEXT NOT NULL,
+    temperature REAL
 );
 CREATE TABLE IF NOT EXISTS key_values (
     key TEXT PRIMARY KEY,
@@ -61,6 +62,9 @@ CREATE TABLE IF NOT EXISTS daily_energy (
 );
 """
 
+# Columns added after the first release: (table, column, type).
+ADDED_COLUMNS = [("forecast_hours", "temperature", "REAL")]
+
 READING_FIELDS = [f.name for f in fields(Reading) if f.name not in ("taken_at", "raw")]
 
 
@@ -75,6 +79,15 @@ class Database:
         self._lock = threading.Lock()
         with self.transaction() as cursor:
             cursor.executescript(SCHEMA)
+            self._add_missing_columns(cursor)
+
+    @staticmethod
+    def _add_missing_columns(cursor: sqlite3.Cursor) -> None:
+        """Adds the columns later versions introduced to tables an older version created."""
+        for table, column, kind in ADDED_COLUMNS:
+            present = {row[1] for row in cursor.execute(f"PRAGMA table_info({table})")}
+            if column not in present:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Cursor]:
@@ -154,14 +167,16 @@ class SqliteForecastRepository(ForecastRepository):
         self._db = database
 
     def save(self, forecast: Forecast, fetched_at: datetime) -> None:
-        """Stores each forecast hour with its fetch time, overwriting older forecasts for it."""
+        """Stores each forecast hour (solar and temperature) with its fetch time, overwriting older
+        forecasts for it."""
         rows = [
-            (_iso(h.hour_end), h.irradiance, h.solar_kwh, _iso(fetched_at)) for h in forecast.hours
+            (_iso(h.hour_end), h.irradiance, h.solar_kwh, _iso(fetched_at), h.temperature)
+            for h in forecast.hours
         ]
         with self._db.transaction() as cursor:
             cursor.executemany(
                 "INSERT OR REPLACE INTO forecast_hours"
-                "(hour_end, irradiance, solar_kwh, fetched_at) VALUES (?, ?, ?, ?)",
+                "(hour_end, irradiance, solar_kwh, fetched_at, temperature) VALUES (?, ?, ?, ?, ?)",
                 rows,
             )
 
@@ -169,12 +184,17 @@ class SqliteForecastRepository(ForecastRepository):
         """Returns the stored forecast hours ending after ``start`` and up to ``end``."""
         with self._db.transaction() as cursor:
             rows = cursor.execute(
-                "SELECT hour_end, irradiance, solar_kwh FROM forecast_hours "
+                "SELECT hour_end, irradiance, solar_kwh, temperature FROM forecast_hours "
                 "WHERE hour_end > ? AND hour_end <= ? ORDER BY hour_end",
                 (_iso(start), _iso(end)),
             ).fetchall()
         return Forecast.of(
-            ForecastHour(datetime.fromisoformat(r["hour_end"]), r["irradiance"], r["solar_kwh"])
+            ForecastHour(
+                datetime.fromisoformat(r["hour_end"]),
+                r["irradiance"],
+                r["solar_kwh"],
+                r["temperature"],
+            )
             for r in rows
         )
 
