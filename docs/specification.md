@@ -92,6 +92,7 @@ on 2026-10-07). Summary:
 | Time of Use | The current table read from the inverter; edit and send manually; result of the order |
 | Settings | General (write limits), outage reserve, battery floor, site and battery, tuning (every value behind a decision) |
 | Log | Every command sent, its order status and read-back result; errors |
+| To do | The owner's list of what is left to do: add, edit, tick done, delete; open items first, done items folded below (added 2026-10-19) |
 
 Files: one HTML template per screen, CSS and JavaScript in separate files, no
 inline scripts or styles.

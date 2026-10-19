@@ -52,7 +52,7 @@ a parameter object (`PlannerDependencies`, `ManualChargeDependencies`,
 
 One SQLite database (path in the machine config, `[storage] database`): readings,
 forecast hours, daily energy, journal, and a key-value store for settings,
-inverter state (last read table and settings), profiles, the manual charge and the
+inverter state (last read table and settings), profiles, the to-do list, the manual charge and the
 password hash. It survives redeploys; nothing in it is needed from the cloud to
 show history.
 

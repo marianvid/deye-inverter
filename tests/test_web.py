@@ -56,7 +56,7 @@ def test_login_logout_cycle(client: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "path", ["/", "/statistics", "/forecast", "/plan", "/time-of-use", "/settings", "/log"]
+    "path", ["/", "/statistics", "/forecast", "/plan", "/time-of-use", "/settings", "/log", "/todo"]
 )
 def test_pages_render(client: TestClient, path: str) -> None:
     login(client)

@@ -20,6 +20,7 @@ from deye_inverter.web.api import (
     ProfilesApi,
     SettingsApi,
     TimeOfUseApi,
+    TodoApi,
 )
 from deye_inverter.web.auth_gate import AuthGate
 from deye_inverter.web.pages import PageController
@@ -47,6 +48,7 @@ def create_app(services: Services) -> FastAPI:
         ManualChargeApi(services),
         SettingsApi(services),
         LogApi(services),
+        TodoApi(services),
     ):
         app.include_router(controller.router)
     app.add_middleware(AuthGate, passwords=services.passwords)

@@ -20,6 +20,7 @@ PAGES = {
     "/time-of-use": ("tou", "Time of Use"),
     "/settings": ("settings", "Settings"),
     "/log": ("log", "Log"),
+    "/todo": ("todo", "To do"),
 }
 
 

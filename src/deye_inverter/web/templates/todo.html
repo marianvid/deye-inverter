@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<form class="toolbar" id="todo-form">
+  <input type="text" id="todo-text" class="todo-input" maxlength="500" placeholder="Something left to do" required>
+  <button type="submit" class="primary">Add</button>
+</form>
+<ul class="todo-list" id="todo-open"></ul>
+<details id="todo-done-box">
+  <summary id="todo-done-summary">Done</summary>
+  <ul class="todo-list" id="todo-done"></ul>
+</details>
+{% endblock %}
+{% block scripts %}<script type="module" src="/static/js/page-todo.js"></script>{% endblock %}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import date, time
 from typing import Any
@@ -12,6 +13,7 @@ from deye_inverter.application.manual_charge import ManualChargeLockedError
 from deye_inverter.application.profiles import ProfileError, ProfilesLockedError
 from deye_inverter.application.statistics import Period
 from deye_inverter.application.time_of_use_service import ACCEPTED
+from deye_inverter.application.todo import TodoError, TodoItem, TodoNotFoundError
 from deye_inverter.container import Services
 from deye_inverter.domain.manual import ManualChargeError
 from deye_inverter.domain.settings import Mode
@@ -301,3 +303,51 @@ class LogApi:
     ) -> list[dict[str, Any]]:
         """Returns up to ``limit`` (1-1000) newest journal entries, optionally of one kind."""
         return self._journal.recent(kind, limit)
+
+
+class TodoApi:
+    """Endpoints for the owner's to-do list: list, add, edit or tick, delete."""
+
+    def __init__(self, services: Services) -> None:
+        self._todos = services.todos
+        self.router = APIRouter(prefix="/api/todo")
+        self.router.add_api_route("", self.show, methods=["GET"])
+        self.router.add_api_route("", self.add, methods=["POST"])
+        self.router.add_api_route("/{item_id}", self.update, methods=["POST"])
+        self.router.add_api_route("/{item_id}", self.delete, methods=["DELETE"])
+
+    def show(self) -> list[dict[str, Any]]:
+        """Returns every item, open ones first."""
+        return [item.as_dict() for item in self._todos.all()]
+
+    def add(self, text: str = Body(..., embed=True)) -> list[dict[str, Any]]:
+        """Adds an open item and returns every item; 400 when the text is empty or too long."""
+        return self._answer(lambda: self._todos.add(text))
+
+    def update(
+        self, item_id: int, text: str | None = Body(None), done: bool | None = Body(None)
+    ) -> list[dict[str, Any]]:
+        """Changes the item's text and/or done flag; 400 if the text is invalid, 404 if unknown."""
+
+        def change() -> list[TodoItem]:
+            if text is not None:
+                self._todos.edit(item_id, text)
+            if done is not None:
+                self._todos.set_done(item_id, done)
+            return self._todos.all()
+
+        return self._answer(change)
+
+    def delete(self, item_id: int) -> list[dict[str, Any]]:
+        """Removes the item and returns the rest; 404 when no item has that id."""
+        return self._answer(lambda: self._todos.delete(item_id))
+
+    @staticmethod
+    def _answer(action: Callable[[], list[TodoItem]]) -> list[dict[str, Any]]:
+        try:
+            items = action()
+        except TodoNotFoundError as error:
+            raise HTTPException(404, str(error)) from error
+        except TodoError as error:
+            raise HTTPException(400, str(error)) from error
+        return [item.as_dict() for item in items]

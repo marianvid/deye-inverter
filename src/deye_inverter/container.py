@@ -43,6 +43,7 @@ from deye_inverter.application.time_of_use_service import (
     TimeOfUseDependencies,
     TimeOfUseService,
 )
+from deye_inverter.application.todo import TodoService
 from deye_inverter.application.views import DashboardViews
 from deye_inverter.config import AppConfig, CredentialsReader, IntervalsConfig
 from deye_inverter.domain.settings import PlannerSettings, SettingsCodec, SiteSettings
@@ -72,6 +73,7 @@ class Services:
     charging: ChargeSettingsService
     manual: ManualChargeService
     profiles: ProfileService
+    todos: TodoService
     collect_readings: CollectReadings
     refresh_inverter: RefreshInverterSettings
     refresh_forecast: RefreshForecast
@@ -155,6 +157,7 @@ def build_services(database: Database, outside: Outside) -> Services:
             )
         ),
         profiles=ProfileService(db.store, db.settings, commands),
+        todos=TodoService(db.store, clock),
         collect_readings=CollectReadings(outside.gateway, db.readings),
         refresh_inverter=RefreshInverterSettings(outside.gateway, db.state, clock),
         refresh_forecast=refresh_forecast,

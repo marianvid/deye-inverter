@@ -347,3 +347,11 @@ details summary { cursor: pointer; color: var(--muted); }
 .grid-switch-tile .switch { margin-top: 0.4rem; }
 .switch.blue input:checked + .slider { background: var(--accent); }
 .switch.blue:has(input:checked) .switch-label { color: var(--accent); }
+
+/* To do */
+.todo-input { flex: 1 1 20rem; min-width: 0; }
+.todo-list { list-style: none; padding: 0; margin: 0 0 1rem; }
+.todo-item { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); }
+.todo-text { flex: 1 1 16rem; overflow-wrap: anywhere; }
+.todo-dates { font-size: 0.85em; }
+.todo-item.done .todo-text { color: var(--muted); text-decoration: line-through; }
