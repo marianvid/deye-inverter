@@ -42,11 +42,13 @@ export function notify(message, kind = "ok") {
 
 export async function guarded(button, action) {
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   try {
     await action();
   } catch (error) {
     notify(error.message, "error");
   } finally {
     button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 }

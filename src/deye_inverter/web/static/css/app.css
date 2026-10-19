@@ -177,10 +177,11 @@ button, select, input {
 }
 
 button { cursor: pointer; }
-button:hover { border-color: var(--accent); }
+button:hover:not(:disabled) { border-color: var(--accent); }
 button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 button.danger { border-color: var(--danger); color: var(--danger); }
-button:disabled { opacity: 0.5; cursor: wait; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button[aria-busy="true"] { cursor: wait; }
 
 .link-button { border: none; background: none; color: var(--muted); padding: 0; }
 
